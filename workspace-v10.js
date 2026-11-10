@@ -55,22 +55,37 @@
   }
 
   async function getMemberships(){
-    const r=await supabaseClient.from('mc_workspace_members').select('workspace_id,member_id,user_id,role,joined_at');
+    if(!currentUser?.id) return [];
+    const r=await supabaseClient
+      .from('mc_workspace_members')
+      .select('workspace_id,member_id,user_id,role,joined_at')
+      .eq('user_id',currentUser.id);
     if(r.error)throw r.error;
     const ids=(r.data||[]).map(x=>x.workspace_id);
     let ws=[];
     if(ids.length){
-      const w=await supabaseClient.from('mc_workspaces').select('id,name,invite_code,owner_user_id,created_at').in('id',ids);
-      if(w.error)throw w.error;ws=w.data||[];
+      const w=await supabaseClient
+        .from('mc_workspaces')
+        .select('id,name,invite_code,owner_user_id,created_at')
+        .in('id',ids);
+      if(w.error)throw w.error;
+      ws=w.data||[];
     }
     return (r.data||[]).map(x=>Object.assign({},x,{workspace:ws.find(w=>w.id===x.workspace_id)||null}));
   }
 
   async function showChooser(){
     injectUI();
-    workspaceMemberships=await getMemberships();
     q('#mcwUser').textContent=currentUser&&currentUser.email?currentUser.email:'';
     q('#authScreen').classList.remove('show');
+    q('.app-shell').style.display='none';
+    try{
+      workspaceMemberships=await getMemberships();
+    }catch(e){
+      console.error('Workspace chooser load failed:',e);
+      workspaceMemberships=[];
+      toast('Signed in','Login succeeded. You can create or join a mess now.','info');
+    }
     q('#mcWorkspaceScreen').classList.add('show');
     q('.app-shell').style.display='none';
     const unique=Array.from(new Map(workspaceMemberships.filter(x=>x.workspace).map(x=>[x.workspace_id,x])).values());
