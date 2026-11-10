@@ -243,9 +243,15 @@ body[data-theme="bw"] .share-summary{background:#fafafa;border-color:#a1a1aa;col
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const KEY='mess-calculator-v8';
+const BUILD_VERSION='20261111-fresh-reset';
+if(localStorage.getItem('mc-build-version')!==BUILD_VERSION){
+  localStorage.removeItem(KEY);
+  localStorage.removeItem('mc-active-workspace');
+  localStorage.setItem('mc-build-version',BUILD_VERSION);
+}
 const defaultState={
   mess:{name:'Friends Mess',currency:'BDT',month:'2026-11',managerId:'m1',openingBalances:{},openingFundBalances:{},defaultMeals:{breakfast:1,lunch:1,dinner:1}},
-  members:[{id:'m1',name:'Shafayet'},{id:'m2',name:'Ridoy'},{id:'m3',name:'Sakib'},{id:'m4',name:'Rahim'},{id:'m5',name:'Fahim'},{id:'m6',name:'Nayeem'}],
+  members:[],
   meals:[],expenses:[],fundEntries:[],notifications:[]
 };
 function migrate(raw){
