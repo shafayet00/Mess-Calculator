@@ -172,10 +172,11 @@
   };
 
   window.changeManager=async function(){
-    if(currentRole!=='manager'){toast('Manager only','Only the current manager can change the manager.','error');return}
+    if(currentRole!=='manager'){toast('Manager only','Only the current manager can transfer manager access.','error');return}
     const sel=q('#managerSelect');if(!sel)return;
-    sel.innerHTML=(state.members||[]).map(function(m){return '<option value="'+esc2(m.auth_user_id||m.id)+'" '+(m.id===state.mess.managerId?'selected':'')+'>'+esc2(m.name)+'</option>'}).join('');
-    q('#managerMemberCount').textContent=(state.members||[]).length+' members';
+    const candidates=(state.members||[]).filter(function(m){return m.auth_user_id&&m.auth_user_id!==currentUser.id});
+    sel.innerHTML=candidates.map(function(m){return '<option value="'+esc2(m.auth_user_id)+'">'+esc2(m.name)+'</option>'}).join('');
+    q('#managerMemberCount').textContent=candidates.length+' eligible members';
     openModal('managerModal');
   };
 
@@ -235,13 +236,21 @@
     const fresh=mf.cloneNode(true);mf.replaceWith(fresh);
     fresh.addEventListener('submit',async function(e){
       e.preventDefault();
+      if(currentRole!=='manager'){toast('Manager only','Only the current manager can transfer manager access.','error');return}
       const newUserId=q('#managerSelect').value;
-      const target=(state.members||[]).find(function(m){return (m.auth_user_id||m.id)===newUserId});
-      if(!target)return;
-      const r=await supabaseClient.rpc('mc_change_manager',{p_workspace_id:currentWorkspaceId,p_new_user_id:target.auth_user_id||newUserId});
+      const target=(state.members||[]).find(function(m){return m.auth_user_id===newUserId});
+      if(!target||!target.auth_user_id||target.auth_user_id===currentUser.id){toast('Invalid member','Choose another active member.','error');return}
+      if(!confirm('Make '+target.name+' the new manager? You will become a regular member.'))return;
+      const r=await supabaseClient.rpc('mc_change_manager',{p_workspace_id:currentWorkspaceId,p_new_user_id:target.auth_user_id});
       if(r.error){toast('Manager change failed',r.error.message,'error');return}
-      state.mess.managerId=target.id;addNotification('Manager changed',target.name+' is now manager');save();closeModals();toast('Manager changed',target.name+' is now the manager.','info');
-      workspaceMemberships=await getMemberships();const me=workspaceMemberships.find(x=>x.workspace_id===currentWorkspaceId&&x.user_id===currentUser.id);if(me)currentRole=me.role;setRoleUI();hideEditControlsForRole();
+      state.mess.managerId=target.id;
+      addNotification('Manager changed',target.name+' is now manager. The previous manager is now a member.');
+      save();closeModals();
+      workspaceMemberships=await getMemberships();
+      const me=workspaceMemberships.find(x=>x.workspace_id===currentWorkspaceId&&x.user_id===currentUser.id);
+      if(me)currentRole=me.role;
+      setRoleUI();hideEditControlsForRole();
+      toast('Manager changed',target.name+' is now the manager. You are now a member.','info');
     });
   }
 
