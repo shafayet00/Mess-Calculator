@@ -875,6 +875,6 @@ const {data,error}=await supabaseClient.auth.signUp({email,password,options:{dat
 
 $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentRole='member';document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');});
 if(supabaseClient){supabaseClient.auth.onAuthStateChange(async (_event,session)=>{currentUser=session?.user||null;if(_event==='SIGNED_IN' && session?.user?.email_confirmed_at){toast('Email verified','Your email is verified. Welcome back to Mess Calculator.','info');}if(!session){if(realtimeChannel){try{await supabaseClient.removeChannel(realtimeChannel);}catch(_){}}realtimeChannel=null;document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');}});}</script>
-<script src="workspace-v10.js?v=20261111-reset"></script>
+<script src="workspace-v10.js?v=20261111-loginfix"></script>
 </body>
 </html>
