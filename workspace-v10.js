@@ -286,5 +286,25 @@
   }
 
   injectUI();
-  setTimeout(function(){startOnlineApp()},0);
+  // Always start from the workspace chooser. Clear any stale local dashboard/workspace cache
+  // so a fresh/reset database cannot reopen an old local dashboard.
+  setTimeout(async function(){
+    try{
+      localStorage.removeItem('mess-calculator-v8');
+      localStorage.removeItem(WORKSPACE_KEY);
+      const {data:{session},error}=await supabaseClient.auth.getSession();
+      if(error) throw error;
+      currentUser=session&&session.user?session.user:null;
+      if(session){
+        await showChooser();
+      }else{
+        q('#authScreen').classList.add('show');
+        q('.app-shell').style.display='none';
+      }
+    }catch(e){
+      console.error(e);
+      q('#authScreen').classList.add('show');
+      q('.app-shell').style.display='none';
+    }
+  },0);
 })();
