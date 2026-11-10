@@ -285,9 +285,8 @@
     });
   }
 
+  window.__mcShowChooser = showChooser;
   injectUI();
-  // Always start from the workspace chooser. Clear any stale local dashboard/workspace cache
-  // so a fresh/reset database cannot reopen an old local dashboard.
   setTimeout(async function(){
     try{
       localStorage.removeItem('mess-calculator-v8');
@@ -295,9 +294,8 @@
       const {data:{session},error}=await supabaseClient.auth.getSession();
       if(error) throw error;
       currentUser=session&&session.user?session.user:null;
-      if(session){
-        await showChooser();
-      }else{
+      if(session) await showChooser();
+      else {
         q('#authScreen').classList.add('show');
         q('.app-shell').style.display='none';
       }
