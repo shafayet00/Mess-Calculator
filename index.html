@@ -792,7 +792,7 @@ function resetEntryForms(){
 }
 function setup(){
  document.addEventListener('click',e=>{
-   const nav=e.target.closest('.nav-item[data-view]');if(nav){$('.nav-item').forEach(x=>x.classList.remove('active'));nav.classList.add('active');$('.view').forEach(x=>x.classList.remove('active'));const target=$('#view-'+nav.dataset.view);if(target)target.classList.add('active');$('#pageTitle').textContent=nav.querySelector('span:last-child').textContent;if(nav.dataset.view==='settings'){try{renderSettings();setRoleUI();hideEditControlsForRole()}catch(err){console.error('Settings render failed:',err)}}if(innerWidth<760)$('#sidebar').classList.remove('open');}
+   const nav=e.target.closest('.nav-item[data-view]');if(nav){$('.nav-item').forEach(x=>x.classList.remove('active'));nav.classList.add('active');$('.view').forEach(x=>x.classList.remove('active'));const target=$('#view-'+nav.dataset.view);if(target)target.classList.add('active');$('#pageTitle').textContent=nav.querySelector('span:last-child').textContent;if(nav.dataset.view==='settings'){try{window.__mcRenderSettings?.();window.setRoleUI?.();window.hideEditControlsForRole?.()}catch(err){console.error('Settings render failed:',err)}}if(innerWidth<760)$('#sidebar').classList.remove('open');}
    const open=e.target.closest('[data-open-modal]');if(open)openModal(open.dataset.openModal);if(e.target.closest('[data-close-modal]'))closeModals();if(e.target.id==='menuBtn')$('#sidebar').classList.toggle('open');
    if(e.target.id==='selectAllShare'){$$('#expenseShares input').forEach(x=>x.checked=true);updateShareSummary();}
    if(e.target.id==='fundDepositBtn'){openModal('fundModal');setFundMode('deposit');}
@@ -1001,6 +1001,6 @@ $('#joinForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=n
 
 $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentRole='member';document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');});
 /* Auth state is handled by workspace-v10.js to avoid refresh-time session races. */</script>
-<script src="workspace-v10.js?v=20261111-stable-auth-settings3"></script>
+<script src="workspace-v10.js?v=20261111-ui-recovery"></script>
 </body>
 </html>
