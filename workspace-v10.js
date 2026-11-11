@@ -34,6 +34,10 @@
       '<div class="mcw-list" id="mcwList"></div><div class="mcw-actions" style="margin-top:22px"><button class="logout-btn" id="mcwLogout">Log out</button></div>'+
       '</div></div>'
     );
+    if(!q('#passwordRecoveryModal')){
+      document.body.insertAdjacentHTML('beforeend','<div class="modal-backdrop" id="passwordRecoveryModal"><div class="modal small-modal"><div class="modal-head"><div><div class="eyebrow">Account recovery</div><h3>Create a new password</h3></div></div><p class="modal-copy">Set a new password for your Mess Calculator account.</p><form id="passwordRecoveryForm"><label>New password<input name="password" type="password" minlength="6" autocomplete="new-password" required placeholder="At least 6 characters"></label><label style="margin-top:12px">Confirm password<input name="confirm" type="password" minlength="6" autocomplete="new-password" required placeholder="Re-enter password"></label><div id="passwordRecoveryError" class="auth-error" style="margin-top:12px"></div><div class="form-actions"><button type="submit" class="primary-btn">Set new password</button></div></form></div></div>');
+      q('#passwordRecoveryForm').addEventListener('submit',completePasswordRecovery);
+    }
     q('#mcwManager').onclick=function(){showMode('create')};
     q('#mcwMember').onclick=function(){showMode('join')};
     q('#mcwBack1').onclick=function(){showMode(null)};
@@ -220,6 +224,35 @@
     }catch(e){console.error(e);q('#authScreen').classList.add('show');q('.app-shell').style.display='none';q('#authError').textContent=e.message||'Unable to connect.';q('#authError').classList.add('show')}
   };
 
+  async function sendPasswordReset(){
+    const email=String(q('#loginForm [name="email"]')?.value||'').trim().toLowerCase();
+    if(!email){setAuthError('Enter your email first, then click Forgot password.');return}
+    try{
+      const r=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:APP_URL+'?reset=1'});
+      if(r.error)throw r.error;
+      setAuthError('Password reset link sent. Check your email and open the link to create a new password.');
+    }catch(err){setAuthError(err.message||'Could not send password reset email.')}
+  }
+  function setAuthError(msg){
+    const el=q('#authError');if(!el)return;el.textContent=msg||'';el.classList.toggle('show',!!msg);
+  }
+  function openPasswordRecovery(){
+    injectUI();
+    const m=q('#passwordRecoveryModal');if(m)m.classList.add('open');
+    q('#authScreen').classList.remove('show');q('.app-shell').style.display='none';
+  }
+  async function completePasswordRecovery(e){
+    e.preventDefault();
+    const fd=new FormData(e.target),password=String(fd.get('password')||''),confirm=String(fd.get('confirm')||''),er=q('#passwordRecoveryError');
+    er.classList.remove('show');
+    if(password.length<6){er.textContent='Password must be at least 6 characters.';er.classList.add('show');return}
+    if(password!==confirm){er.textContent='Passwords do not match.';er.classList.add('show');return}
+    try{
+      const r=await supabaseClient.auth.updateUser({password});if(r.error)throw r.error;
+      e.target.reset();q('#passwordRecoveryModal').classList.remove('open');history.replaceState({},'',APP_URL);
+      toast('Password updated','Your new password is ready.','info');await showChooser();
+    }catch(err){er.textContent=err.message||'Could not update password.';er.classList.add('show')}
+  }
   function replaceForm(id,handler){
     const old=q(id);if(!old)return;
     const fresh=old.cloneNode(true);old.replaceWith(fresh);fresh.addEventListener('submit',handler);return fresh;
@@ -250,6 +283,8 @@
     }catch(err){q('#joinError').textContent=err.message||'Could not create account.';q('#joinError').classList.add('show')}
     finally{q('#joinLoading').classList.remove('show')}
   });
+
+  q('#forgotPasswordBtn')?.addEventListener('click',sendPasswordReset);
 
   const mf=q('#managerForm');
   if(mf){
@@ -293,7 +328,9 @@
   if(typeof supabaseClient!=='undefined'&&supabaseClient){
     supabaseClient.auth.onAuthStateChange(function(event,session){
       currentUser=session&&session.user?session.user:null;
-      if(event==='SIGNED_IN'||event==='INITIAL_SESSION'){
+      if(event==='PASSWORD_RECOVERY'){
+        openPasswordRecovery();
+      }else if(event==='SIGNED_IN'||event==='INITIAL_SESSION'){
         if(session)showChooser().catch(function(e){console.error(e)});
       }
       if(event==='SIGNED_OUT'){
@@ -309,6 +346,7 @@
   injectUI();
   setTimeout(async function(){
     try{
+      if(window.location.search.includes('reset=1') || window.location.hash.includes('type=recovery')) openPasswordRecovery();
       localStorage.removeItem('mess-calculator-v8');
       localStorage.removeItem(WORKSPACE_KEY);
       const {data:{session},error}=await supabaseClient.auth.getSession();
