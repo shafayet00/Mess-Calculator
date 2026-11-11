@@ -940,7 +940,35 @@ function setup(){
    closeModals();
    toast(`${label} added`,detail);
  });
- $('#newMonthForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target),month=f.get('month');if(month===currentMonth())return alert('Choose a different month.');const ms=memberStats();const previousFundBalance=totals().fundBalance;state.mess.openingBalances ||= {};state.mess.openingFundBalances ||= {};state.mess.openingBalances[month]={};ms.forEach(m=>state.mess.openingBalances[month][m.id]=m.balance);state.mess.openingFundBalances[month]=previousFundBalance;state.mess.month=month;addNotification('New month started',`${monthName(month)} opened with mess balance ${money(previousFundBalance)}`);if(supabaseClient&&isManager()){const {error}=await supabaseClient.from('months').update({is_active:false}).eq('is_active',true);if(error)return toast('New month failed',error.message,'error');const {data:nm,error:ne}=await supabaseClient.from('months').insert({name:monthName(month),start_date:month+'-01',opening_balance:previousFundBalance,is_active:true}).select().single();if(ne)return toast('New month failed',ne.message,'error');if(isAdmin()){const {error:se}=await supabaseClient.from('mess_settings').upsert({month_id:nm.id,manager_member_id:state.mess.managerId},{onConflict:'month_id'});if(se)return toast('Settings failed',se.message,'error');}}save();closeModals();toast('New month started',`${monthName(month)} opened with ${money(previousFundBalance)} opening mess balance.`,'info');});
+ $('#newMonthForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!isManager())return toast('Manager only','Only the Manager can start a new month.','error');
+  const f=new FormData(e.target),month=String(f.get('month')||'');
+  if(!month)return;
+  if(month===currentMonth())return alert('Choose a different month.');
+  const ms=memberStats();
+  const previousFundBalance=totals().fundBalance;
+  const previousState=structuredClone(state);
+  state.mess.openingBalances ||= {};
+  state.mess.openingFundBalances ||= {};
+  state.mess.openingBalances[month]={};
+  ms.forEach(m=>state.mess.openingBalances[month][m.id]=m.balance);
+  state.mess.openingFundBalances[month]=previousFundBalance;
+  state.mess.month=month;
+  addNotification('New month started',`${monthName(month)} opened with mess balance ${money(previousFundBalance)}`);
+  try{
+    localStorage.setItem(KEY,JSON.stringify(state));
+    await syncCurrentState();
+    closeModals();
+    render();
+    toast('New month started',`${monthName(month)} opened with ${money(previousFundBalance)} opening mess balance.`,'info');
+  }catch(err){
+    state=previousState;
+    localStorage.setItem(KEY,JSON.stringify(state));
+    render();
+    toast('New month failed',err.message||'Could not save the new month.','error');
+  }
+ });
  $('#managerForm').addEventListener('submit',async e=>{e.preventDefault();if(!isAdmin())return toast('Admin only','Only the Admin can change the Manager.','error');const oldManager=state.members.find(x=>x.id===state.mess.managerId);state.mess.managerId=$('#managerSelect').value;const m=state.members.find(x=>x.id===state.mess.managerId);try{if(supabaseClient){if(oldManager?.auth_user_id){await supabaseClient.from('user_roles').upsert({user_id:oldManager.auth_user_id,member_id:oldManager.id,role:'member'},{onConflict:'user_id'});}if(m?.auth_user_id){await supabaseClient.from('user_roles').upsert({user_id:m.auth_user_id,member_id:m.id,role:'manager'},{onConflict:'user_id'});}}addNotification('Manager changed',`${m?.name||'Member'} is now manager`);save();closeModals();toast('Manager changed',`${m?.name||'Member'} is now the manager.`,'info');}catch(err){toast('Manager change failed',err.message,'error');}});
  render();
 }
