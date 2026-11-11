@@ -283,7 +283,7 @@ function migrate(raw){
 }
 const SUPABASE_URL='https://imrgayohubztxbggdpti.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_UFlHlhrxcOyh63njVwDwZQ_qEivlOvp';
-const supabaseClient=(window.supabase&&SUPABASE_URL&&SUPABASE_ANON_KEY)?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{flowType:'pkce',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}}):null;
+const supabaseClient=(window.supabase&&SUPABASE_URL&&SUPABASE_ANON_KEY)?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{flowType:'pkce',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true,storageKey:'mess-calculator-auth'}}):null;
 let currentUser=null;
 let currentRole='member';
 let currentMemberId=null;
@@ -988,6 +988,6 @@ $('#joinForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=n
 
 $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentRole='member';document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');});
 if(supabaseClient){supabaseClient.auth.onAuthStateChange(async (_event,session)=>{currentUser=session?.user||null;if(_event==='SIGNED_IN' && session?.user?.email_confirmed_at){toast('Email verified','Your email is verified. Welcome back to Mess Calculator.','info');}if(!session){if(realtimeChannel){try{await supabaseClient.removeChannel(realtimeChannel);}catch(_){}}realtimeChannel=null;document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');}});}</script>
-<script src="workspace-v10.js?v=20261111-status-fix"></script>
+<script src="workspace-v10.js?v=20261111-session-persist"></script>
 </body>
 </html>
