@@ -611,80 +611,155 @@ function downloadFullReport(){
     const moneyPdf=v=>Number(v||0).toFixed(2);
     const reportMonth=monthName(currentMonth());
 
-    // Use AutoTable when available; otherwise fall back to a built-in PDF table renderer.
-    // This keeps PDF download working even if the AutoTable CDN is blocked.
+    const pageHeader=()=>{
+      const pageCount=doc.internal.getNumberOfPages();
+      for(let p=1;p<=pageCount;p++){
+        doc.setPage(p);
+        doc.setFontSize(8);
+        doc.setTextColor(120);
+        doc.text(state.mess?.name||'Mess Calculator',14,8);
+        doc.text(reportMonth+' • Full Report',doc.internal.pageSize.getWidth()-14,8,{align:'right'});
+        doc.text('Page '+p+' of '+pageCount,doc.internal.pageSize.getWidth()-14,202,{align:'right'});
+      }
+    };
+
+    let y=16;
+
+    // Built-in table renderer. It does not depend on the AutoTable plugin.
     const drawTable=(head,body,opts={})=>{
       if(typeof doc.autoTable==='function'){
-        let y=46;
-    y=drawTable(['Month Summary','Value','Month Summary','Value'],[
+        doc.autoTable({
+          startY:y,
+          head:[head],
+          body:body.length?body:[['No records found.']],
+          theme:'grid',
+          styles:{fontSize:7,cellPadding:1.7,overflow:'linebreak',valign:'middle'},
+          headStyles:{fontStyle:'bold'},
+          margin:{left:14,right:14},
+          ...opts
+        });
+        return doc.lastAutoTable.finalY;
+      }
+
+      const pageH=doc.internal.pageSize.getHeight();
+      const pageW=doc.internal.pageSize.getWidth();
+      const left=14,right=14,usable=pageW-left-right;
+      const cols=head.length;
+      const widths=Array.from({length:cols},()=>usable/cols);
+      const rows=[head,...(body.length?body:[['No records found.']])];
+      let yy=y;
+      const lineH=4.2;
+
+      const wrap=(value,maxChars)=>{
+        const s=String(value??'');
+        if(!s)return [''];
+        const words=s.split(/\s+/);
+        const lines=[];let line='';
+        words.forEach(word=>{
+          if((line+' '+word).trim().length>maxChars){
+            if(line)lines.push(line);
+            line=word;
+          }else line=(line+' '+word).trim();
+        });
+        if(line)lines.push(line);
+        return lines.length?lines:[''];
+      };
+
+      rows.forEach((row,ri)=>{
+        const cellLines=row.map((v,ci)=>wrap(v,Math.max(7,Math.floor(widths[ci]/1.8))));
+        const h=Math.max(lineH,Math.max(...cellLines.map(x=>x.length))*lineH);
+        if(yy+h>pageH-16){doc.addPage();yy=16;}
+        let xx=left;
+        row.forEach((value,ci)=>{
+          doc.setDrawColor(190);
+          doc.rect(xx,yy,widths[ci],h);
+          doc.setFontSize(ri===0?6.5:6);
+          doc.setFont(undefined,ri===0?'bold':'normal');
+          cellLines[ci].forEach((line,li)=>{
+            doc.text(String(line),xx+1,yy+3+li*lineH,{maxWidth:widths[ci]-2});
+          });
+          xx+=widths[ci];
+        });
+        yy+=h;
+      });
+      return yy;
+    };
+
+    const section=(title,head,body,opts={})=>{
+      if(y>185){doc.addPage();y=16;}
+      doc.setFontSize(12);
+      doc.setFont(undefined,'bold');
+      doc.setTextColor(25);
+      doc.text(title,14,y);
+      y+=5;
+      y=drawTable(head,body,opts)+8;
+    };
+
+    doc.setFontSize(20);
+    doc.setFont(undefined,'bold');
+    doc.setTextColor(25);
+    doc.text('MESS CALCULATOR',14,y);
+    y+=9;
+    doc.setFontSize(15);
+    doc.text('Full Monthly Report',14,y);
+    y+=7;
+    doc.setFontSize(10);
+    doc.setFont(undefined,'normal');
+    doc.setTextColor(90);
+    doc.text((state.mess?.name||'Mess')+' • '+reportMonth,14,y);
+    y+=6;
+    doc.text('Generated: '+new Date().toLocaleString(),14,y);
+    y+=8;
+
+    section('Month Summary',
+      ['Metric','Value','Metric','Value'],
+      [
         ['Total Members',String(members.length),'Total Meals',String(t.totalMeals)],
         ['Meal Cost',moneyPdf(t.mealCost),'Other Cost',moneyPdf(t.otherCost)],
         ['Total Expense',moneyPdf(t.totalExpense),'Meal Rate',moneyPdf(t.mealRate)],
         ['Total Deposits',moneyPdf(t.deposits),'Withdrawals',moneyPdf(t.withdrawals)],
         ['Mess Fund Balance',moneyPdf(t.fundBalance),'Transfers',moneyPdf(t.transfers)]
-    ],{styles:{fontSize:8,cellPadding:2.2}})+8;
-    const section=(title,head,body,opts={})=>{
-      if(y>185){doc.addPage();y=16;}
-      doc.setFontSize(12);
-      doc.setTextColor(25);
-      doc.text(title,14,y);
-      y+=4;
-      y=drawTable(head,body,
-        ...opts
-      )+7;
-    };
+      ],
+      {styles:{fontSize:8,cellPadding:2.2}}
+    );
 
-    // 1. Member details
-    section(
-      'Member Details',
+    section('Member Details',
       ['ID','Name','Email','Role','Meals','Opening','Deposit','Personal Paid','Food Cost','Other Cost','Total Cost','Settlement'],
       ms.map(m=>[
         m.id,m.name||'',m.email||'',m.id===state.mess.managerId?'Manager':'Member',
         String(m.meals),moneyPdf(m.opening),moneyPdf(m.deposit),moneyPdf(m.personalPaid),
         moneyPdf(m.foodCost),moneyPdf(m.otherCost),moneyPdf(m.totalCost),moneyPdf(m.balance)
-      ]),
-      {columnStyles:{0:{cellWidth:22},1:{cellWidth:25},2:{cellWidth:38}}}
+      ])
     );
 
-    // 2. Daily meals
-    section(
-      'Daily Meals',
+    section('Daily Meals',
       ['Date',...members.map(m=>(m.name||'Member').slice(0,14)),'Total'],
       meals.map(r=>[
         r.date,
         ...members.map(m=>String(Number(r.counts?.[m.id]||0))),
         String(members.reduce((s,m)=>s+Number(r.counts?.[m.id]||0),0))
-      ]),
-      {styles:{fontSize:6.5,cellPadding:1.5}}
+      ])
     );
 
-    // 3. Expense details
-    section(
-      'Expense Details',
+    section('Expense Details',
       ['Date','Expense','Category','Amount','Paid By','Source','Shared Members'],
       expenses.map(e=>[
         e.date,e.name||'',e.category||'',moneyPdf(e.amount),
         memberNameById(e.paidBy),
         e.source==='personal'?'Personal Money':'Mess Fund',
         (e.sharedBy||[]).map(memberNameById).join(', ')||'None'
-      ]),
-      {columnStyles:{1:{cellWidth:38},6:{cellWidth:60}}}
+      ])
     );
 
-    // 4. Fund transactions
-    section(
-      'Fund Transactions',
+    section('Fund Transactions',
       ['Date','Type','From / Member','To','Amount','Note'],
       funds.map(e=>e.type==='transfer'
         ? [e.date,'Transfer',memberNameById(e.fromMember),memberNameById(e.toMember),moneyPdf(e.amount),e.note||'']
         : [e.date,e.type==='deposit'?'Deposit':'Withdrawal',memberNameById(e.member),'',moneyPdf(e.amount),e.note||'']
-      ),
-      {columnStyles:{5:{cellWidth:70}}}
+      )
     );
 
-    // 5. Daily financial summary
-    section(
-      'Daily Summary',
+    section('Daily Summary',
       ['Date','Meals','Deposits','Withdrawals','Transfers','Meal Cost','Other Cost'],
       daily.map(r=>[
         r.date,String(r.mealTotal),moneyPdf(r.deposits),moneyPdf(r.withdrawals),
@@ -693,10 +768,9 @@ function downloadFullReport(){
     );
 
     pageHeader();
-
     const safeMonth=String(currentMonth()).replace(/[^0-9-]/g,'-');
     doc.save('mess-full-report-'+safeMonth+'.pdf');
-    toast('PDF downloaded','Complete member details, meals, expenses and fund transactions are included.','info');
+    toast('PDF downloaded','Complete report downloaded successfully.','info');
   }catch(err){
     console.error('PDF report download failed:',err);
     toast('PDF download failed',err.message||'Could not create the PDF report.','error');
@@ -1199,6 +1273,6 @@ $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supa
 /* Auth state is handled by workspace-v10.js to avoid refresh-time session races. */</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
-<script src="workspace-v10.js?v=20261111-pdf-report-fix"></script>
+<script src="workspace-v10.js?v=20261111-pdf-report-fix2"></script>
 </body>
 </html>
