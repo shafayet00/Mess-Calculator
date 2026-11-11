@@ -131,6 +131,7 @@
     if(r.error)throw r.error;
     currentWorkspaceId=id;
     window.__mcWorkspaceId=id;
+    window.__mcInviteCode=membership.workspace&&membership.workspace.invite_code?membership.workspace.invite_code:'';
     currentRole=membership.role;
     currentMemberId=membership.member_id;
     state=migrate(r.data.state||defaultState);
