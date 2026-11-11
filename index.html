@@ -1001,6 +1001,7 @@ function editMeal(date){
  $('#mealForm').classList.add('edit-mode');
 }
 function editExpense(id){
+ if(!isManager()){toast('Manager only','Only the manager can edit expenses.','error');return;}
  const e=state.expenses.find(x=>x.id===id); if(!e)return;
  openModal('expenseModal');
  $('#expenseModalTitle').textContent='Edit Expense';
@@ -1028,7 +1029,7 @@ function editFund(id){
  const btn=$('#fundForm button.primary-btn'); if(btn)btn.textContent='Update Entry';
 }
 function deleteMeal(id){const r=state.meals.find(x=>x.id===id);if(!r||!confirmDelete(`meals for ${dateLabel(r.date)}`))return;const total=Object.values(r.counts||{}).reduce((a,b)=>a+Number(b||0),0);state.meals=state.meals.filter(x=>x.id!==id);addNotification('Meals deleted',`${dateLabel(r.date)} · ${total} meals removed`);save();toast('Meals deleted',`${dateLabel(r.date)} was removed.`,'info');}
-function deleteExpense(id){const r=state.expenses.find(x=>x.id===id);if(!r||!confirmDelete(`expense “${r.name}”`))return;state.expenses=state.expenses.filter(x=>x.id!==id);addNotification('Expense deleted',`${r.name} · ${money(r.amount)} removed`);save();toast('Expense deleted',`${r.name} was removed.`,'info');}
+function deleteExpense(id){if(!isManager()){toast('Manager only','Only the manager can delete expenses.','error');return;}const r=state.expenses.find(x=>x.id===id);if(!r||!confirmDelete(`expense “${r.name}”`))return;state.expenses=state.expenses.filter(x=>x.id!==id);addNotification('Expense deleted',`${r.name} · ${money(r.amount)} removed`);save();toast('Expense deleted',`${r.name} was removed.`,'info');}
 function deleteFund(id){const r=state.fundEntries.find(x=>x.id===id);if(!r)return;const label=r.type==='deposit'?'deposit':r.type==='withdrawal'?'withdrawal':'transfer';if(!confirmDelete(`${label} of ${money(r.amount)}`))return;state.fundEntries=state.fundEntries.filter(x=>x.id!==id);addNotification(`${label[0].toUpperCase()+label.slice(1)} deleted`,`${money(r.amount)} on ${dateLabel(r.date)} removed`);save();toast(`${label} deleted`,`${money(r.amount)} was removed.`,'info');}
 function applyDefaultMenuToMembers(){
  const each=Number(state.mess.defaultMeals.breakfast||0)+Number(state.mess.defaultMeals.lunch||0)+Number(state.mess.defaultMeals.dinner||0);
