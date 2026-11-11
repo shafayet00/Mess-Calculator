@@ -197,14 +197,6 @@
   window.isManager=function(){return currentRole==='manager'};
   window.isAdmin=function(){return false};
 
-  window.__mcCycleTheme=function(){
-    const cycle={light:'dark',dark:'bw',bw:'light'};
-    state.mess.theme=cycle[state.mess.theme||'light']||'dark';
-    applyTheme();save();
-    const names={light:'White / Light',dark:'Full Dark',bw:'Black & White'};
-    toast('Theme changed',names[state.mess.theme]+' theme enabled.','info');
-  };
-
   window.setRoleUI=function(){
     const badge=q('#roleBadge');
     if(badge){badge.textContent=currentRole==='manager'?'🛠️ Manager':'👤 Member';badge.className='role-badge '+currentRole}
@@ -418,9 +410,6 @@
       if(e.target.closest('[data-close-modal]')&&typeof window.closeModals==='function')window.closeModals();
       if(e.target.closest('#menuBtn')){
         const side=document.getElementById('sidebar');if(side)side.classList.toggle('open');
-      }
-      if(e.target.closest('#themeToggle')){
-        if(typeof window.__mcCycleTheme==='function')window.__mcCycleTheme();
       }
     });
   })();
