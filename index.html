@@ -690,6 +690,7 @@ async function changePassword(e){
     // Re-authenticate first, then update the password on the verified session.
     const email=String(currentUser.email||'').trim().toLowerCase();
     if(!email)throw new Error('No account email is available for re-authentication.');
+    window.__mcPasswordReauth=true;
     const auth=await supabaseClient.auth.signInWithPassword({email,password:current});
     if(auth.error)throw new Error('Current password is incorrect.');
     currentUser=auth.data.user||currentUser;
@@ -700,6 +701,8 @@ async function changePassword(e){
   }catch(err){
     console.error('Password change failed:',err);
     if(error){error.textContent=err.message||'Could not change your password.';error.classList.add('show');}
+  }finally{
+    window.__mcPasswordReauth=false;
   }
 }
 
