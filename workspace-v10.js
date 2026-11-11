@@ -355,7 +355,7 @@
       if(event==='PASSWORD_RECOVERY'){
         openPasswordRecovery();
       }else if(event==='SIGNED_IN'){
-        if(session)openChooserOnce().catch(function(e){console.error(e)});
+        if(session&&!window.__mcPasswordReauth)openChooserOnce().catch(function(e){console.error(e)});
       }else if(event==='SIGNED_OUT'){
         currentWorkspaceId=null;window.__mcWorkspaceId=null;workspaceMemberships=[];
         if(workspaceChannel){supabaseClient.removeChannel(workspaceChannel).catch(function(){})}
