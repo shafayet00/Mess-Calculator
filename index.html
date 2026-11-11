@@ -645,10 +645,12 @@ function downloadFullReport(){
 
     // Header
     rect(0,515,W,80,[0.06,0.10,0.18]);
+    c.push('1 1 1 rg');
     text(42,552,23,'MESS CALCULATOR',true);
     text(42,532,10,'Monthly financial report');
     text(800,552,14,reportMonth,true);
     text(800,532,9,'Generated '+new Date().toLocaleDateString(),false);
+    c.push('0.08 0.10 0.14 rg');
 
     // Month Summary card
     rect(30,370,782,125,[1,1,1]);
@@ -1250,6 +1252,6 @@ $('#joinForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=n
 
 $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentRole='member';document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');});
 /* Auth state is handled by workspace-v10.js to avoid refresh-time session races. */</script>
-<script src="workspace-v10.js?v=20261111-pdf-report-clean"></script>
+<script src="workspace-v10.js?v=20261111-pdf-report-visible"></script>
 </body>
 </html>
