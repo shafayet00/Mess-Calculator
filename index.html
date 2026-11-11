@@ -78,9 +78,10 @@ body[data-theme="bw"] .share-summary{background:#fafafa;border-color:#a1a1aa;col
       <div id="authError" class="auth-error"></div>
       <div id="authLoading" class="auth-loading">Signing in…</div>
       <button class="primary-btn" style="width:100%;margin-top:16px">Sign in</button>
-      <div class="auth-switch">New member? <button type="button" id="showJoinBtn">Join this mess</button></div>
+      <div class="auth-switch">New member? <button type="button" id="showJoinBtn" onclick="window.__showJoinForm&&window.__showJoinForm()">Join this mess</button></div>
     </form>
     <form id="joinForm" style="display:none">
+      <label>Invite code or invite link<input name="inviteCode" id="joinInviteCode" required placeholder="e.g. AB12CD34 or paste invite link"></label>
       <label>Full name<input name="name" required placeholder="Your name"></label>
       <label>Email<input name="email" type="email" required placeholder="you@example.com"></label>
       <label>Password<input name="password" type="password" minlength="6" required placeholder="At least 6 characters"></label>
@@ -88,7 +89,7 @@ body[data-theme="bw"] .share-summary{background:#fafafa;border-color:#a1a1aa;col
       <div id="joinError" class="auth-error"></div>
       <div id="joinLoading" class="auth-loading">Creating your mess account…</div>
       <button class="primary-btn" style="width:100%;margin-top:16px">Create account & join</button>
-      <div class="auth-switch">Already a member? <button type="button" id="showLoginBtn">Back to sign in</button></div>
+      <div class="auth-switch">Already a member? <button type="button" id="showLoginBtn" onclick="window.__showLoginForm&&window.__showLoginForm()">Back to sign in</button></div>
       <div class="auth-note">Use your own name, email and password. After joining, your account is automatically added to this mess as a Member.</div>
     </form>
   </div>
@@ -868,10 +869,19 @@ function setup(){
 }
 setup();
 $('#loginForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target);$('#authError').classList.remove('show');$('#authLoading').classList.add('show');try{if(!supabaseClient)throw new Error('Supabase anon key is not configured.');const {error}=await supabaseClient.auth.signInWithPassword({email:String(f.get('email')),password:String(f.get('password'))});if(error)throw error;if(window.__mcShowChooser)await window.__mcShowChooser();}catch(err){$('#authError').textContent=err.message||'Login failed.';$('#authError').classList.add('show');}finally{$('#authLoading').classList.remove('show');}});
-$('#showJoinBtn')?.addEventListener('click',()=>{$('#loginForm').style.display='none';$('#joinForm').style.display='block';$('#authIntro').textContent='Create your account with your own name, email and password. You will join this mess as a Member.';});
-$('#showLoginBtn')?.addEventListener('click',()=>{$('#joinForm').style.display='none';$('#loginForm').style.display='block';$('#authIntro').textContent='Sign in with your mess account. Admin and Manager can edit according to their permissions; Members have view-only access.';});
-$('#joinForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target),name=String(f.get('name')||'').trim(),email=String(f.get('email')||'').trim().toLowerCase(),password=String(f.get('password')||''),confirmPassword=String(f.get('confirmPassword')||'');$('#joinError').classList.remove('show');$('#joinLoading').classList.add('show');try{if(!supabaseClient)throw new Error('Supabase is not configured.');if(password!==confirmPassword)throw new Error('Passwords do not match.');if(password.length<6)throw new Error('Password must be at least 6 characters.');const redirectUrl='https://shafayet00.github.io/Mess-Calculator/';
-const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:redirectUrl}});if(error)throw error;if(data.session){toast('Welcome!','Your account was created. Choose Manager or Member to continue.','info');if(window.__mcShowChooser)await window.__mcShowChooser();}else{e.target.reset();$('#joinError').textContent='Account created successfully. Check your email, click the verification link, and this page will open automatically. Then sign in with the same email and password.';$('#joinError').classList.add('show');}}catch(err){$('#joinError').textContent=err.message||'Could not create account.';$('#joinError').classList.add('show');}finally{$('#joinLoading').classList.remove('show');}});
+window.__showJoinForm=function(){
+  $('#loginForm').style.display='none';
+  $('#joinForm').style.display='block';
+  $('#authIntro').textContent='Create your account and join an existing mess using its invite code or invite link.';
+  const raw=new URLSearchParams(location.search).get('mess')||'';
+  if(raw && $('#joinInviteCode') && !$('#joinInviteCode').value) $('#joinInviteCode').value=raw;
+};
+window.__showLoginForm=function(){
+  $('#joinForm').style.display='none';
+  $('#loginForm').style.display='block';
+  $('#authIntro').textContent='Sign in with your mess account. Admin and Manager can edit according to their permissions; Members have view-only access.';
+};
+$('#joinForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target),code=String(f.get('inviteCode')||'').trim(),name=String(f.get('name')||'').trim(),email=String(f.get('email')||'').trim().toLowerCase(),password=String(f.get('password')||''),confirmPassword=String(f.get('confirmPassword')||'');$('#joinError').classList.remove('show');$('#joinLoading').classList.add('show');try{if(!supabaseClient)throw new Error('Supabase is not configured.');if(!code)throw new Error('Enter the mess invite code or invite link.');if(password!==confirmPassword)throw new Error('Passwords do not match.');if(password.length<6)throw new Error('Password must be at least 6 characters.');const redirectUrl='https://shafayet00.github.io/Mess-Calculator/?mess='+encodeURIComponent(code);const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:redirectUrl}});if(error)throw error;if(data.session){const jr=await supabaseClient.rpc('mc_join_mess',{p_code:code});if(jr.error)throw jr.error;toast('Joined successfully','Your account was added to the mess.','info');if(window.__mcShowChooser)await window.__mcShowChooser();}else{e.target.reset();$('#joinInviteCode').value=code;$('#joinError').textContent='Account created successfully. Check your email, click the verification link, then sign in. Your invite code is saved in the link.';$('#joinError').classList.add('show');}}catch(err){$('#joinError').textContent=err.message||'Could not create account.';$('#joinError').classList.add('show');}finally{$('#joinLoading').classList.remove('show');}});
 
 $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentRole='member';document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');});
 if(supabaseClient){supabaseClient.auth.onAuthStateChange(async (_event,session)=>{currentUser=session?.user||null;if(_event==='SIGNED_IN' && session?.user?.email_confirmed_at){toast('Email verified','Your email is verified. Welcome back to Mess Calculator.','info');}if(!session){if(realtimeChannel){try{await supabaseClient.removeChannel(realtimeChannel);}catch(_){}}realtimeChannel=null;document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');}});}</script>
