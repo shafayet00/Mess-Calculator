@@ -197,6 +197,14 @@
   window.isManager=function(){return currentRole==='manager'};
   window.isAdmin=function(){return false};
 
+  window.__mcCycleTheme=function(){
+    const cycle={light:'dark',dark:'bw',bw:'light'};
+    state.mess.theme=cycle[state.mess.theme||'light']||'dark';
+    applyTheme();save();
+    const names={light:'White / Light',dark:'Full Dark',bw:'Black & White'};
+    toast('Theme changed',names[state.mess.theme]+' theme enabled.','info');
+  };
+
   window.setRoleUI=function(){
     const badge=q('#roleBadge');
     if(badge){badge.textContent=currentRole==='manager'?'🛠️ Manager':'👤 Member';badge.className='role-badge '+currentRole}
@@ -378,6 +386,43 @@
         btn.disabled=false;
       }
     },true);
+  })();
+
+  window.__mcRenderSettings = renderSettings;
+  window.__mcNavigate = function(view){
+    const nav=document.querySelector('.nav-item[data-view="'+view+'"]');
+    if(nav) nav.click();
+  };
+
+  (function bindCoreNavigation(){
+    document.addEventListener('click',function(e){
+      const nav=e.target.closest('.nav-item[data-view]');
+      if(nav){
+        document.querySelectorAll('.nav-item[data-view]').forEach(x=>x.classList.remove('active'));
+        nav.classList.add('active');
+        document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+        const view=document.getElementById('view-'+nav.dataset.view);
+        if(view)view.classList.add('active');
+        const title=nav.querySelector('span:last-child');
+        const pageTitle=document.getElementById('pageTitle');
+        if(title&&pageTitle)pageTitle.textContent=title.textContent;
+        if(nav.dataset.view==='settings'&&window.__mcRenderSettings){
+          try{window.__mcRenderSettings();}catch(err){console.error('Settings render:',err);}
+        }
+        if(window.innerWidth<760){
+          const side=document.getElementById('sidebar');if(side)side.classList.remove('open');
+        }
+      }
+      const modalBtn=e.target.closest('[data-open-modal]');
+      if(modalBtn&&typeof window.openModal==='function')window.openModal(modalBtn.dataset.openModal);
+      if(e.target.closest('[data-close-modal]')&&typeof window.closeModals==='function')window.closeModals();
+      if(e.target.closest('#menuBtn')){
+        const side=document.getElementById('sidebar');if(side)side.classList.toggle('open');
+      }
+      if(e.target.closest('#themeToggle')){
+        if(typeof window.__mcCycleTheme==='function')window.__mcCycleTheme();
+      }
+    });
   })();
 
   window.__mcShowChooser = showChooser;
