@@ -621,6 +621,88 @@ function renderNotifications(){
   const items=(state.notifications||[]).filter(n=>n.month===currentMonth()).slice(0,100);
   $('#view-notifications').innerHTML=`<div class="toolbar"><div><div class="eyebrow">Activity alerts</div><h3>Notifications</h3></div><span class="pill">${items.length} this month</span></div><div class="panel notification-panel">${items.length?items.map(n=>`<div class="notification-row"><div class="notification-dot"></div><div class="notification-main"><strong>${esc(n.action)}</strong><p>${esc(n.details)}</p><small class="muted">${dateLabel(n.date)} · ${esc(n.time||'')}</small></div></div>`).join(''):'<div class="empty">No notifications yet.</div>'}</div>`;
 }
+async function saveProfile(e){
+  e.preventDefault();
+  const form=e.target;
+  const error=$('#profileError'),success=$('#profileSuccess');
+  if(error)error.classList.remove('show');
+  if(success){success.style.display='none';success.textContent='';}
+  if(!currentUser||!supabaseClient){
+    if(error){error.textContent='Your session is not ready. Please stay on the page and try again.';error.classList.add('show');}
+    return;
+  }
+  const f=new FormData(form);
+  const name=String(f.get('name')||'').trim();
+  const email=String(f.get('email')||'').trim().toLowerCase();
+  if(!name||!email){
+    if(error){error.textContent='Name and email are required.';error.classList.add('show');}
+    return;
+  }
+  try{
+    const emailChanged=email!==String(currentUser.email||'').toLowerCase();
+    const update={data:{...(currentUser.user_metadata||{}),full_name:name}};
+    if(emailChanged)update.email=email;
+    const r=await supabaseClient.auth.updateUser(update);
+    if(r.error)throw r.error;
+    currentUser=r.data.user||currentUser;
+    const me=(state.members||[]).find(m=>m.auth_user_id===currentUser.id);
+    if(me){me.name=name;me.email=email;}
+    if(state.members)state.members=state.members.map(m=>m.auth_user_id===currentUser.id?{...m,name,email}:m);
+    localStorage.setItem(KEY,JSON.stringify(state));
+    if(canEdit())await syncCurrentState();
+    renderProfile();
+    if(success){
+      success.textContent=emailChanged
+        ? 'Profile saved. If you changed your email, check the new address and confirm it.'
+        : 'Profile updated successfully.';
+      success.style.display='block';
+    }
+  }catch(err){
+    console.error('Profile update failed:',err);
+    if(error){error.textContent=err.message||'Could not update your profile.';error.classList.add('show');}
+  }
+}
+
+async function changePassword(e){
+  e.preventDefault();
+  const form=e.target;
+  const error=$('#passwordError'),success=$('#passwordSuccess');
+  if(error)error.classList.remove('show');
+  if(success){success.style.display='none';success.textContent='';}
+  const f=new FormData(form);
+  const current=String(f.get('currentPassword')||'');
+  const next=String(f.get('newPassword')||'');
+  const confirmPassword=String(f.get('confirmPassword')||'');
+  if(next.length<6){
+    if(error){error.textContent='New password must be at least 6 characters.';error.classList.add('show');}
+    return;
+  }
+  if(next!==confirmPassword){
+    if(error){error.textContent='New passwords do not match.';error.classList.add('show');}
+    return;
+  }
+  if(!currentUser||!supabaseClient){
+    if(error){error.textContent='Your session is not ready. Please refresh once.';error.classList.add('show');}
+    return;
+  }
+  try{
+    // Supabase does not expose a browser-side "verify current password" call.
+    // Re-authenticate first, then update the password on the verified session.
+    const email=String(currentUser.email||'').trim().toLowerCase();
+    if(!email)throw new Error('No account email is available for re-authentication.');
+    const auth=await supabaseClient.auth.signInWithPassword({email,password:current});
+    if(auth.error)throw new Error('Current password is incorrect.');
+    currentUser=auth.data.user||currentUser;
+    const r=await supabaseClient.auth.updateUser({password:next});
+    if(r.error)throw r.error;
+    form.reset();
+    if(success){success.textContent='Password changed successfully.';success.style.display='block';}
+  }catch(err){
+    console.error('Password change failed:',err);
+    if(error){error.textContent=err.message||'Could not change your password.';error.classList.add('show');}
+  }
+}
+
 function renderProfile(){
  const me=(state.members||[]).find(m=>m.auth_user_id===currentUser?.id)||{};
  const email=currentUser?.email||me.email||'';
