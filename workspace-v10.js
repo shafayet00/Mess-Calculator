@@ -107,14 +107,13 @@
     const row=Array.isArray(r.data)?r.data[0]:r.data;
     if(!row||!row.workspace_id){errorBox('#mcwCreateError','Mess was created but could not be opened.');return}
     await openWorkspace(row.workspace_id);
-    const link=APP_URL+'?mess='+encodeURIComponent(row.invite_code);
-    setTimeout(function(){alert(row.workspace_name+' created successfully.\n\nInvite code: '+row.invite_code+'\n\nInvite link: '+link)},200);
+    setTimeout(function(){alert(row.workspace_name+' created successfully.\n\nYour mess invite code: '+row.invite_code+'\n\nShare this code with members so they can join.')},200);
   }
 
   async function joinMess(){
     errorBox('#mcwJoinError','');
     const code=parseCode(q('#mcwInvite').value);
-    if(!code){errorBox('#mcwJoinError','Enter an invite code or invite link.');return}
+    if(!code){errorBox('#mcwJoinError','Enter the invite code provided by the Manager.');return}
     const r=await supabaseClient.rpc('mc_join_mess',{p_code:code});
     if(r.error){errorBox('#mcwJoinError',r.error.message);return}
     const row=Array.isArray(r.data)?r.data[0]:r.data;
