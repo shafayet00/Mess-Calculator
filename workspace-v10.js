@@ -86,13 +86,18 @@
       workspaceMemberships=[];
       toast('Signed in','Login succeeded. You can create or join a mess now.','info');
     }
+    const unique=Array.from(new Map(workspaceMemberships.filter(x=>x.workspace).map(x=>[x.workspace_id,x])).values());
+    // Existing users go directly to their mess dashboard. The chooser is only for
+    // brand-new accounts that do not belong to any mess yet.
+    if(unique.length){
+      q('#mcWorkspaceScreen').classList.remove('show');
+      q('.app-shell').style.display='';
+      await openWorkspace(unique[0].workspace_id);
+      return;
+    }
     q('#mcWorkspaceScreen').classList.add('show');
     q('.app-shell').style.display='none';
-    const unique=Array.from(new Map(workspaceMemberships.filter(x=>x.workspace).map(x=>[x.workspace_id,x])).values());
-    q('#mcwList').innerHTML=unique.length?'<h3>Your messes</h3>'+unique.map(function(x){
-      return '<div class="mcw-item"><div><strong>'+esc2(x.workspace.name)+'</strong><small>'+(x.role==='manager'?'Manager':'Member')+' · Invite code: '+esc2(x.workspace.invite_code)+'</small></div><button data-ws="'+x.workspace_id+'">Open</button></div>';
-    }).join(''):'';
-    qa('#mcwList [data-ws]').forEach(function(b){b.onclick=function(){openWorkspace(b.dataset.ws)}});
+    q('#mcwList').innerHTML='';
     showMode(null);
     // Mess joining happens only after account creation and from the Member option.
     // No automatic invite-link join is performed here.
@@ -288,7 +293,7 @@
   if(typeof supabaseClient!=='undefined'&&supabaseClient){
     supabaseClient.auth.onAuthStateChange(function(event,session){
       currentUser=session&&session.user?session.user:null;
-      if(event==='SIGNED_IN'||event==='INITIAL_SESSION'||event==='TOKEN_REFRESHED'){
+      if(event==='SIGNED_IN'||event==='INITIAL_SESSION'){
         if(session)showChooser().catch(function(e){console.error(e)});
       }
       if(event==='SIGNED_OUT'){
