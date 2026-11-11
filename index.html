@@ -615,21 +615,43 @@ function renderProfile(){
  const role=currentRole==='manager'?'Manager':'Member';
  const workspaceName=state.mess?.name||'—';
  $('#view-profile').innerHTML=`
- <div class="toolbar"><div><div class="eyebrow">Account</div><h3>Profile</h3></div><span class="pill">${esc(role)}</span></div>
+ <div class="profile-toolbar"><div><div class="eyebrow">Account</div><h3>Profile</h3></div><span class="profile-role">${esc(role)}</span></div>
+ <div class="profile-hero">
+  <div class="profile-identity">
+   <div class="profile-avatar">${esc((name||'M').charAt(0).toUpperCase())}</div>
+   <div><h4>${esc(name||'Your Profile')}</h4><p>${esc(email)}</p></div>
+  </div>
+  <div class="profile-hero-meta">
+   <span class="profile-chip">${verified?'✓ Email verified':'⚠ Email not verified'}</span>
+   <span class="profile-chip">${esc(role)}</span>
+   <span class="profile-chip">${esc(workspaceName)}</span>
+  </div>
+ </div>
  <div class="profile-grid">
   <div class="profile-card">
-   <div class="eyebrow">Personal information</div><h3>${esc(name)}</h3><p>Update your name or email address. Email changes may require confirmation.</p>
-   <form id="profileForm" style="margin-top:18px">
-    <label>Name<input name="name" value="${esc(name)}" required></label>
-    <label style="margin-top:12px">Gmail / Email<input name="email" type="email" value="${esc(email)}" required></label>
-    <div class="profile-note">${verified?'✓ Email verified':'⚠ Email not verified'} · Current role: ${esc(role)} · Mess: ${esc(workspaceName)}</div>
+   <div class="profile-card-head"><div class="profile-section-icon">◎</div><div><h3>Personal information</h3><p>Keep your account details up to date.</p></div></div>
+   <form id="profileForm">
+    <div class="profile-form-grid">
+     <label>Name<input name="name" value="${esc(name)}" required></label>
+     <label>Gmail / Email<input name="email" type="email" value="${esc(email)}" required></label>
+    </div>
+    <div class="profile-meta-box">
+     <span class="profile-status ${verified?'ok':''}">${verified?'✓ Email verified':'⚠ Email not verified'}</span>
+     <span class="profile-status">Role: ${esc(role)}</span>
+     <span class="profile-status">Mess: ${esc(workspaceName)}</span>
+    </div>
     <div id="profileError" class="auth-error" style="margin-top:12px"></div><div id="profileSuccess" class="auth-note" style="margin-top:12px;display:none"></div>
     <div class="profile-actions"><button class="primary-btn">Save changes</button></div>
    </form>
   </div>
-  <div class="profile-card">
-   <div class="eyebrow">Security</div><h3>Password</h3><p>Change your password anytime while logged in.</p>
-   <form id="changePasswordForm" style="margin-top:18px">
+  <div class="profile-card security-card">
+   <div class="profile-card-head"><div class="profile-section-icon">⌘</div><div><h3>Password & Security</h3><p>Change your password securely.</p></div></div>
+   <p class="security-copy">Use your current password to confirm the change. Your new password should be at least 6 characters.</p>
+   <div class="security-list">
+    <div class="security-tip"><b>✓</b><span>Never share your password with another member.</span></div>
+    <div class="security-tip"><b>✓</b><span>If you forget it, use <b>Forgot password?</b> from the login screen.</span></div>
+   </div>
+   <form id="changePasswordForm">
     <label>Current password<input name="currentPassword" type="password" autocomplete="current-password" required></label>
     <label style="margin-top:12px">New password<input name="newPassword" type="password" minlength="6" autocomplete="new-password" required></label>
     <label style="margin-top:12px">Confirm new password<input name="confirmPassword" type="password" minlength="6" autocomplete="new-password" required></label>
@@ -640,31 +662,6 @@ function renderProfile(){
  </div>`;
  $('#profileForm')?.addEventListener('submit',saveProfile);
  $('#changePasswordForm')?.addEventListener('submit',changePassword);
-}
-async function saveProfile(e){
- e.preventDefault();const fd=new FormData(e.target),name=String(fd.get('name')||'').trim(),email=String(fd.get('email')||'').trim().toLowerCase(),oldEmail=String(currentUser?.email||'').trim().toLowerCase();
- const er=$('#profileError'),ok=$('#profileSuccess');er.classList.remove('show');ok.style.display='none';
- if(!name)return showProfileMsg(er,'Name cannot be empty.');
- if(!email||!email.includes('@'))return showProfileMsg(er,'Enter a valid email address.');
- try{
-  const payload={data:{full_name:name}};if(email!==oldEmail)payload.email=email;
-  const r=await supabaseClient.auth.updateUser(payload);if(r.error)throw r.error;
-  const rpc=await supabaseClient.rpc('mc_update_profile',{p_name:name});if(rpc.error)throw rpc.error;
-  currentUser=r.data.user||currentUser;const me=(state.members||[]).find(m=>m.auth_user_id===currentUser.id);if(me)me.name=name;save();
-  ok.textContent=email!==oldEmail?'Name saved. A confirmation email was sent to '+email+'. Your email changes after confirmation.':'Profile updated successfully.';ok.style.display='block';
-  toast('Profile updated','Your profile information has been saved.','info');
- }catch(err){showProfileMsg(er,err.message||'Could not update profile.')}
-}
-function showProfileMsg(el,msg){el.textContent=msg;el.classList.add('show')}
-async function changePassword(e){
- e.preventDefault();const fd=new FormData(e.target),current=String(fd.get('currentPassword')||''),next=String(fd.get('newPassword')||''),confirm=String(fd.get('confirmPassword')||''),er=$('#passwordError'),ok=$('#passwordSuccess');er.classList.remove('show');ok.style.display='none';
- if(next.length<6)return showProfileMsg(er,'New password must be at least 6 characters.');
- if(next!==confirm)return showProfileMsg(er,'New passwords do not match.');
- try{
-  const check=await supabaseClient.auth.signInWithPassword({email:currentUser.email,password:current});if(check.error)throw new Error('Current password is incorrect.');
-  const r=await supabaseClient.auth.updateUser({password:next});if(r.error)throw r.error;
-  e.target.reset();ok.textContent='Password changed successfully.';ok.style.display='block';toast('Password changed','Your new password is active now.','info');
- }catch(err){showProfileMsg(er,err.message||'Could not change password.')}
 }
 function renderSettings(){
  const manager=state.members.find(m=>m.id===state.mess.managerId),d=state.mess.defaultMeals;
