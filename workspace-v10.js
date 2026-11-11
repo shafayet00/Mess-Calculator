@@ -396,6 +396,12 @@
         await new Promise(resolve=>setTimeout(resolve,300));
       }
       if(lastError)throw lastError;
+      // If the access token is stale but a refresh token is still persisted,
+      // explicitly refresh once before deciding that the user is logged out.
+      if(!session){
+        const refreshed=await supabaseClient.auth.refreshSession();
+        if(!refreshed.error&&refreshed.data&&refreshed.data.session)session=refreshed.data.session;
+      }
       currentUser=session&&session.user?session.user:null;
       if(session){
         await showChooser();
