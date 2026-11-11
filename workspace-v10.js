@@ -339,21 +339,46 @@
   },true);
 
   if(typeof supabaseClient!=='undefined'&&supabaseClient){
+    // Initial page-load session is handled once by the startup loader below.
+    // SIGNED_IN handles a fresh login; INITIAL_SESSION is intentionally ignored
+    // here to prevent two simultaneous workspace loads during refresh.
     supabaseClient.auth.onAuthStateChange(function(event,session){
       currentUser=session&&session.user?session.user:null;
       if(event==='PASSWORD_RECOVERY'){
         openPasswordRecovery();
-      }else if(event==='SIGNED_IN'||event==='INITIAL_SESSION'){
+      }else if(event==='SIGNED_IN'){
         if(session)showChooser().catch(function(e){console.error(e)});
-      }
-      if(event==='SIGNED_OUT'){
+      }else if(event==='SIGNED_OUT'){
         currentWorkspaceId=null;window.__mcWorkspaceId=null;workspaceMemberships=[];
         if(workspaceChannel){supabaseClient.removeChannel(workspaceChannel).catch(function(){})}
         q('#mcWorkspaceScreen')&&q('#mcWorkspaceScreen').classList.remove('show');
-        q('.app-shell').style.display='none';q('#authScreen').classList.add('show');
+        q('.app-shell').style.display='none';
+        q('#authScreen').classList.add('show');
       }
     });
   }
+
+  // Robust logout handler. This is the single owner of the Logout button.
+  (function bindLogout(){
+    const btn=q('#logoutBtn');
+    if(!btn)return;
+    btn.addEventListener('click',async function(e){
+      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+      btn.disabled=true;
+      try{
+        if(workspaceChannel){try{await supabaseClient.removeChannel(workspaceChannel)}catch(_){}}
+        workspaceChannel=null;
+        currentWorkspaceId=null;window.__mcWorkspaceId=null;workspaceMemberships=[];
+        const {error}=await supabaseClient.auth.signOut();
+        if(error)throw error;
+      }catch(err){
+        console.error('Logout failed:',err);
+        toast('Logout failed',err.message||'Could not sign out.','error');
+      }finally{
+        btn.disabled=false;
+      }
+    },true);
+  })();
 
   window.__mcShowChooser = showChooser;
   injectUI();
@@ -361,14 +386,14 @@
     try{
       if(window.location.search.includes('reset=1') || window.location.hash.includes('type=recovery')) openPasswordRecovery();
       localStorage.removeItem('mess-calculator-v8');
-      // Never clear the saved workspace/auth state during a normal page refresh.
-      let session=null, lastError=null;
-      for(let attempt=0;attempt<4;attempt++){
+      // Restore the Supabase session before deciding whether the user needs to log in.
+      let session=null,lastError=null;
+      for(let attempt=0;attempt<10;attempt++){
         const result=await supabaseClient.auth.getSession();
         if(result.error){lastError=result.error;break}
         session=result.data&&result.data.session;
         if(session)break;
-        await new Promise(resolve=>setTimeout(resolve,350));
+        await new Promise(resolve=>setTimeout(resolve,300));
       }
       if(lastError)throw lastError;
       currentUser=session&&session.user?session.user:null;
@@ -379,7 +404,7 @@
         q('.app-shell').style.display='none';
       }
     }catch(e){
-      console.error(e);
+      console.error('Startup auth restore failed:',e);
       q('#authScreen').classList.add('show');
       q('.app-shell').style.display='none';
     }
