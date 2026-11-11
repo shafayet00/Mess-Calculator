@@ -751,7 +751,7 @@ function renderReports(){
  ];
  const tabButtons=tabs.map(([id,label],i)=>`<button class="report-tab ${i===0?'active':''}" data-report-tab="${id}">${label}</button>`).join('');
  const empty=col=>`<tr><td colspan="${col}"><div class="empty">No records for this section.</div></td></tr>`;
- $('#view-reports').innerHTML=`<div class="toolbar"><div><div class="eyebrow">Organized monthly ledger</div><h3>${monthName(currentMonth())} Report</h3><p class="muted">Use the tabs to find exactly the transaction you need.</p></div><button class="secondary-btn" id="printReport">⬇ Download Full Report</button></div>
+ $('#view-reports').innerHTML=`<div class="toolbar"><div><div class="eyebrow">Organized monthly ledger</div><h3>${monthName(currentMonth())} Report</h3><p class="muted">Use the tabs to find exactly the transaction you need.</p></div><button class="secondary-btn" id="printReport">⬇ Download PDF Report</button></div>
  <div class="report-grid"><div class="report-card"><h4>Food / Meal Cost</h4><div class="stat-value">${money(t.mealCost)}</div><div class="muted">${t.totalMeals} total meals</div></div><div class="report-card"><h4>Other Cost</h4><div class="stat-value">${money(t.otherCost)}</div><div class="muted">Non-food expenses</div></div><div class="report-card"><h4>Total Cost</h4><div class="stat-value">${money(t.totalExpense)}</div><div class="muted">Food + other</div></div><div class="report-card"><h4>Meal Rate</h4><div class="stat-value">${money(t.mealRate)}</div><div class="muted">Calculated automatically</div></div></div>
  <div class="report-tabs">${tabButtons}</div>
  <div class="report-panels">
