@@ -65,6 +65,8 @@ body[data-theme="bw"] .share-summary{background:#fafafa;border-color:#a1a1aa;col
 .user-actions{display:flex;align-items:center;gap:8px}.logout-btn{border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:8px 11px;font-size:11px;font-weight:800}.logout-btn:hover{border-color:#cbd5e1;background:#f8fafc}
 @media(max-width:760px){.auth-card{padding:22px}}
 </style>
+.forgot-password-btn{display:block;width:100%;border:0;background:transparent;color:#2563eb;font-size:11px;font-weight:800;margin-top:10px;padding:6px}.forgot-password-btn:hover{text-decoration:underline}.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.profile-card{background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:20px;box-shadow:var(--shadow)}.profile-card h3{margin:0 0 5px}.profile-card p{margin:0;color:#64748b;font-size:11px;line-height:1.5}.profile-value{font-size:14px;font-weight:800;padding:11px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px}.profile-note{font-size:10px;color:#64748b;line-height:1.5;margin-top:10px}.profile-danger{border-color:#fecaca;background:#fff7f7}.profile-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:16px}@media(max-width:760px){.profile-grid{grid-template-columns:1fr}}
+
   <title>Mess Calculator</title>
 </head>
 <body>
@@ -78,6 +80,7 @@ body[data-theme="bw"] .share-summary{background:#fafafa;border-color:#a1a1aa;col
       <div id="authError" class="auth-error"></div>
       <div id="authLoading" class="auth-loading">Signing in…</div>
       <button class="primary-btn" style="width:100%;margin-top:16px">Sign in</button>
+      <button type="button" class="forgot-password-btn" id="forgotPasswordBtn">Forgot password?</button>
       <div class="auth-switch">New member? <button type="button" id="showJoinBtn" onclick="window.__showJoinForm&&window.__showJoinForm()">Create account</button></div>
     </form>
     <form id="joinForm" style="display:none">
@@ -107,6 +110,7 @@ body[data-theme="bw"] .share-summary{background:#fafafa;border-color:#a1a1aa;col
       <button class="nav-item" data-view="members"><span class="nav-icon">♟</span><span>Members</span></button>
       <button class="nav-item" data-view="reports"><span class="nav-icon">▤</span><span>Monthly Report</span></button>
       <button class="nav-item" data-view="notifications"><span class="nav-icon">🔔</span><span>Notifications</span></button>
+      <button class="nav-item" data-view="profile"><span class="nav-icon">◉</span><span>Profile</span></button>
       <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span><span>Mess Settings</span></button>
       <button class="nav-item action-item" id="themeToggle"><span class="nav-icon">◐</span><span>Dark Theme</span></button>
       <div class="nav-divider"></div>
@@ -138,6 +142,7 @@ body[data-theme="bw"] .share-summary{background:#fafafa;border-color:#a1a1aa;col
     <section id="view-members" class="view"></section>
     <section id="view-reports" class="view"></section>
     <section id="view-notifications" class="view"></section>
+    <section id="view-profile" class="view"></section>
     <section id="view-settings" class="view"></section>
   </main>
 </div>
@@ -889,6 +894,6 @@ $('#joinForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=n
 
 $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentRole='member';document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');});
 if(supabaseClient){supabaseClient.auth.onAuthStateChange(async (_event,session)=>{currentUser=session?.user||null;if(_event==='SIGNED_IN' && session?.user?.email_confirmed_at){toast('Email verified','Your email is verified. Welcome back to Mess Calculator.','info');}if(!session){if(realtimeChannel){try{await supabaseClient.removeChannel(realtimeChannel);}catch(_){}}realtimeChannel=null;document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');}});}</script>
-<script src="workspace-v10.js?v=20261111-direct-dashboard"></script>
+<script src="workspace-v10.js?v=20261111-profile-password"></script>
 </body>
 </html>
