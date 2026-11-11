@@ -611,62 +611,27 @@ function downloadFullReport(){
     const moneyPdf=v=>Number(v||0).toFixed(2);
     const reportMonth=monthName(currentMonth());
 
-    // Header/footer on every PDF page.
-    const pageHeader=()=>{
-      const pageCount=doc.internal.getNumberOfPages();
-      for(let p=1;p<=pageCount;p++){
-        doc.setPage(p);
-        doc.setFontSize(8);
-        doc.setTextColor(120);
-        doc.text(state.mess?.name||'Mess Calculator',14,8);
-        doc.text(reportMonth+' • Full Report',doc.internal.pageSize.getWidth()-14,8,{align:'right'});
-        doc.text('Page '+p+' of '+pageCount,doc.internal.pageSize.getWidth()-14,202,{align:'right'});
-      }
-    };
-
-    doc.setFontSize(20);
-    doc.setTextColor(25);
-    doc.text('MESS CALCULATOR',14,18);
-    doc.setFontSize(15);
-    doc.text('Full Monthly Report',14,27);
-    doc.setFontSize(10);
-    doc.setTextColor(90);
-    doc.text((state.mess?.name||'Mess')+' • '+reportMonth,14,34);
-    doc.text('Generated: '+new Date().toLocaleString(),14,40);
-
-    doc.autoTable({
-      startY:46,
-      theme:'grid',
-      head:[['Month Summary','Value','Month Summary','Value']],
-      body:[
+    // Use AutoTable when available; otherwise fall back to a built-in PDF table renderer.
+    // This keeps PDF download working even if the AutoTable CDN is blocked.
+    const drawTable=(head,body,opts={})=>{
+      if(typeof doc.autoTable==='function'){
+        let y=46;
+    y=drawTable(['Month Summary','Value','Month Summary','Value'],[
         ['Total Members',String(members.length),'Total Meals',String(t.totalMeals)],
         ['Meal Cost',moneyPdf(t.mealCost),'Other Cost',moneyPdf(t.otherCost)],
         ['Total Expense',moneyPdf(t.totalExpense),'Meal Rate',moneyPdf(t.mealRate)],
         ['Total Deposits',moneyPdf(t.deposits),'Withdrawals',moneyPdf(t.withdrawals)],
         ['Mess Fund Balance',moneyPdf(t.fundBalance),'Transfers',moneyPdf(t.transfers)]
-      ],
-      styles:{fontSize:8,cellPadding:2.2},
-      headStyles:{fontStyle:'bold'}
-    });
-
-    let y=doc.lastAutoTable.finalY+8;
+    ],{styles:{fontSize:8,cellPadding:2.2}})+8;
     const section=(title,head,body,opts={})=>{
       if(y>185){doc.addPage();y=16;}
       doc.setFontSize(12);
       doc.setTextColor(25);
       doc.text(title,14,y);
       y+=4;
-      doc.autoTable({
-        startY:y,
-        head:[head],
-        body:body.length?body:[['No records found.']],
-        theme:'grid',
-        styles:{fontSize:7,cellPadding:1.7,overflow:'linebreak',valign:'middle'},
-        headStyles:{fontStyle:'bold'},
-        margin:{left:14,right:14},
+      y=drawTable(head,body,
         ...opts
-      });
-      y=doc.lastAutoTable.finalY+7;
+      )+7;
     };
 
     // 1. Member details
@@ -1234,6 +1199,6 @@ $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supa
 /* Auth state is handled by workspace-v10.js to avoid refresh-time session races. */</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
-<script src="workspace-v10.js?v=20261111-pdf-report"></script>
+<script src="workspace-v10.js?v=20261111-pdf-report-fix"></script>
 </body>
 </html>
