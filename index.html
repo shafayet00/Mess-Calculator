@@ -282,7 +282,7 @@ function migrate(raw){
   return s;
 }
 const SUPABASE_URL='https://imrgayohubztxbggdpti.supabase.co';
-const SUPABASE_ANON_KEY='sb_publishable_UFlHlhrxcOyh63njVwDZQ_qEivlOvp';
+const SUPABASE_ANON_KEY='sb_publishable_UFlHlhrxcOyh63njVwDwZQ_qEivlOvp';
 const supabaseClient=(window.supabase&&SUPABASE_URL&&SUPABASE_ANON_KEY)?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{flowType:'pkce',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}}):null;
 let currentUser=null;
 let currentRole='member';
