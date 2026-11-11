@@ -143,6 +143,19 @@
     window.__mcInviteCode=membership.workspace&&membership.workspace.invite_code?membership.workspace.invite_code:'';
     currentRole=membership.role;
     currentMemberId=membership.member_id;
+    // Immediately replace the loading badges once the workspace role is known.
+    const roleBadge=q('#roleBadge');
+    if(roleBadge){
+      roleBadge.textContent=currentRole==='manager'?'🛠️ Manager':'👤 Member';
+      roleBadge.className='role-badge '+currentRole;
+    }
+    const onlineStatus=q('#onlineStatus');
+    if(onlineStatus){
+      onlineStatus.textContent='Cloud synced';
+      onlineStatus.className='online-status ok';
+    }
+    const storageStatus=q('#storageStatus');
+    if(storageStatus)storageStatus.textContent='Cloud synced';
     state=migrate(r.data.state||defaultState);
     state.workspaceId=id;
     state.mess=state.mess||structuredClone(defaultState.mess);
