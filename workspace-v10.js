@@ -254,6 +254,31 @@
       setAuthError('Password reset link sent. Check your email and open the link to create a new password.');
     }catch(err){setAuthError(err.message||'Could not send password reset email.')}
   }
+  // Auth form navigation: these functions are used by the inline buttons in index.html.
+  window.__showJoinForm=function(){
+    const login=q('#loginForm'), join=q('#joinForm');
+    if(!login||!join)return;
+    login.style.display='none';
+    join.style.display='block';
+    q('#authError')?.classList.remove('show');
+    q('#joinError')?.classList.remove('show');
+    q('#authIntro').textContent='Create your Mess Calculator account. Verify your email, then sign in.';
+    const name=join.querySelector('[name="name"]');
+    if(name)name.focus();
+  };
+
+  window.__showLoginForm=function(){
+    const login=q('#loginForm'), join=q('#joinForm');
+    if(!login||!join)return;
+    join.style.display='none';
+    login.style.display='block';
+    q('#joinError')?.classList.remove('show');
+    q('#authError')?.classList.remove('show');
+    q('#authIntro').textContent='Sign in with your mess account. Admin and Manager can edit according to their permissions; Members have view-only access.';
+    const email=login.querySelector('[name="email"]');
+    if(email)email.focus();
+  };
+
   function setAuthError(msg){
     const el=q('#authError');if(!el)return;el.textContent=msg||'';el.classList.toggle('show',!!msg);
   }
