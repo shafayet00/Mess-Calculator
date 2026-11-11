@@ -534,8 +534,19 @@ function dailyRows(){
 function render(){
   applyTheme();
   $('#monthLabel').textContent=monthName(currentMonth());
-  renderDashboard();renderMeals();renderExpenses();renderFund();renderMembers();renderReports();renderNotifications();renderProfile();renderSettings();
-  if(!$$('.modal-backdrop.open').length) populateForms();
+  const renderers=[
+    ['dashboard',renderDashboard],['meals',renderMeals],['expenses',renderExpenses],
+    ['fund',renderFund],['members',renderMembers],['reports',renderReports],
+    ['notifications',renderNotifications],['profile',renderProfile],['settings',renderSettings]
+  ];
+  renderers.forEach(([name,fn])=>{
+    try{fn()}catch(err){
+      console.error('Render failed:',name,err);
+      const box=$('#view-'+name);
+      if(box) box.innerHTML='<div class="panel"><div class="eyebrow">Temporary display error</div><h3>Could not load this section</h3><p class="muted">Please refresh once. Your cloud data is safe.</p></div>';
+    }
+  });
+  if(!$('.modal-backdrop.open').length) populateForms();
   setRoleUI();
   hideEditControlsForRole();
 }
@@ -781,7 +792,7 @@ function resetEntryForms(){
 }
 function setup(){
  document.addEventListener('click',e=>{
-   const nav=e.target.closest('.nav-item[data-view]');if(nav){$$('.nav-item').forEach(x=>x.classList.remove('active'));nav.classList.add('active');$$('.view').forEach(x=>x.classList.remove('active'));$('#view-'+nav.dataset.view).classList.add('active');$('#pageTitle').textContent=nav.querySelector('span:last-child').textContent;if(innerWidth<760)$('#sidebar').classList.remove('open');}
+   const nav=e.target.closest('.nav-item[data-view]');if(nav){$('.nav-item').forEach(x=>x.classList.remove('active'));nav.classList.add('active');$('.view').forEach(x=>x.classList.remove('active'));const target=$('#view-'+nav.dataset.view);if(target)target.classList.add('active');$('#pageTitle').textContent=nav.querySelector('span:last-child').textContent;if(nav.dataset.view==='settings'){try{renderSettings();setRoleUI();hideEditControlsForRole()}catch(err){console.error('Settings render failed:',err)}}if(innerWidth<760)$('#sidebar').classList.remove('open');}
    const open=e.target.closest('[data-open-modal]');if(open)openModal(open.dataset.openModal);if(e.target.closest('[data-close-modal]'))closeModals();if(e.target.id==='menuBtn')$('#sidebar').classList.toggle('open');
    if(e.target.id==='selectAllShare'){$$('#expenseShares input').forEach(x=>x.checked=true);updateShareSummary();}
    if(e.target.id==='fundDepositBtn'){openModal('fundModal');setFundMode('deposit');}
@@ -989,7 +1000,7 @@ window.__showLoginForm=function(){
 $('#joinForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target),name=String(f.get('name')||'').trim(),email=String(f.get('email')||'').trim().toLowerCase(),password=String(f.get('password')||''),confirmPassword=String(f.get('confirmPassword')||'');$('#joinError').classList.remove('show');$('#joinLoading').classList.add('show');try{if(!supabaseClient)throw new Error('Supabase is not configured.');if(password!==confirmPassword)throw new Error('Passwords do not match.');if(password.length<6)throw new Error('Password must be at least 6 characters.');const redirectUrl='https://shafayet00.github.io/Mess-Calculator/';const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:redirectUrl}});if(error)throw error;if(data.session){toast('Account created','Choose Manager to create a mess or Member to join one.','info');if(window.__mcShowChooser)await window.__mcShowChooser();}else{e.target.reset();$('#joinError').textContent='Account created successfully. Check your email, click the verification link, then sign in. After signing in you will choose Manager or Member.';$('#joinError').classList.add('show');}}catch(err){$('#joinError').textContent=err.message||'Could not create account.';$('#joinError').classList.add('show');}finally{$('#joinLoading').classList.remove('show');}});
 
 $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentRole='member';document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');});
-if(supabaseClient){supabaseClient.auth.onAuthStateChange(async (_event,session)=>{currentUser=session?.user||null;if(_event==='SIGNED_IN' && session?.user?.email_confirmed_at){toast('Email verified','Your email is verified. Welcome back to Mess Calculator.','info');}if(!session){if(realtimeChannel){try{await supabaseClient.removeChannel(realtimeChannel);}catch(_){}}realtimeChannel=null;document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');}});}</script>
+/* Auth state is handled by workspace-v10.js to avoid refresh-time session races. */</script>
 <script src="workspace-v10.js?v=20261111-session-persist2"></script>
 </body>
 </html>
