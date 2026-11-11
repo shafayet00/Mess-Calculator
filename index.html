@@ -654,6 +654,7 @@ function downloadFullReport(){
 
     // Month Summary card
     rect(30,370,782,125,[1,1,1]);
+    c.push('0.08 0.10 0.14 rg');
     text(48,466,16,'Month Summary',true);
     text(48,448,9,'Overview for '+reportMonth);
 
@@ -688,9 +689,11 @@ function downloadFullReport(){
       const y=205-row*(cardH+gapY);
 
       rect(x,y,cardW,cardH,[1,1,1]);
+      c.push('0.08 0.10 0.14 rg');
 
       // Avatar circle
       rect(x+12,y+75,30,20,[0.96,0.94,0.95]);
+      c.push('0.08 0.10 0.14 rg');
       text(x+21,y+81,10,String(m.name||'M').charAt(0).toUpperCase(),true);
 
       text(x+50,y+86,11,shortName(m.name),true);
@@ -715,6 +718,7 @@ function downloadFullReport(){
 
     // Footer
     line(30,26,812,26);
+    c.push('0.08 0.10 0.14 rg');
     text(30,13,7,'Mess Calculator • '+reportMonth);
     text(812,13,7,'Member cost summary',false);
 
@@ -1252,6 +1256,6 @@ $('#joinForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=n
 
 $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentRole='member';document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');});
 /* Auth state is handled by workspace-v10.js to avoid refresh-time session races. */</script>
-<script src="workspace-v10.js?v=20261111-pdf-report-textfix"></script>
+<script src="workspace-v10.js?v=20261111-pdf-report-visible2"></script>
 </body>
 </html>
