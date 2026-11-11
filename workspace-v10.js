@@ -361,12 +361,20 @@
     try{
       if(window.location.search.includes('reset=1') || window.location.hash.includes('type=recovery')) openPasswordRecovery();
       localStorage.removeItem('mess-calculator-v8');
-      localStorage.removeItem(WORKSPACE_KEY);
-      const {data:{session},error}=await supabaseClient.auth.getSession();
-      if(error) throw error;
+      // Never clear the saved workspace/auth state during a normal page refresh.
+      let session=null, lastError=null;
+      for(let attempt=0;attempt<4;attempt++){
+        const result=await supabaseClient.auth.getSession();
+        if(result.error){lastError=result.error;break}
+        session=result.data&&result.data.session;
+        if(session)break;
+        await new Promise(resolve=>setTimeout(resolve,350));
+      }
+      if(lastError)throw lastError;
       currentUser=session&&session.user?session.user:null;
-      if(session) await showChooser();
-      else {
+      if(session){
+        await showChooser();
+      }else{
         q('#authScreen').classList.add('show');
         q('.app-shell').style.display='none';
       }
