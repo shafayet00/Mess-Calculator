@@ -6,6 +6,14 @@
   let currentWorkspaceId=window.__mcWorkspaceId||null;
   let workspaceMemberships=[];
   let workspaceChannel=null;
+  let authBooting=true;
+  let chooserPromise=null;
+
+  function openChooserOnce(){
+    if(chooserPromise) return chooserPromise;
+    chooserPromise=showChooser().finally(function(){chooserPromise=null});
+    return chooserPromise;
+  }
 
   function q(s){return document.querySelector(s)}
   function qa(s){return Array.from(document.querySelectorAll(s))}
@@ -233,7 +241,7 @@
       const s=await supabaseClient.auth.getSession();if(s.error)throw s.error;
       currentUser=s.data.session?s.data.session.user:null;
       if(!currentUser){q('#authScreen').classList.add('show');q('.app-shell').style.display='none';return}
-      await showChooser();
+      await openChooserOnce();
     }catch(e){console.error(e);q('#authScreen').classList.add('show');q('.app-shell').style.display='none';q('#authError').textContent=e.message||'Unable to connect.';q('#authError').classList.add('show')}
   };
 
@@ -277,7 +285,7 @@
       const fd=new FormData(e.target);
       const r=await supabaseClient.auth.signInWithPassword({email:String(fd.get('email')).trim().toLowerCase(),password:String(fd.get('password'))});
       if(r.error)throw r.error;
-      await showChooser();
+      await openChooserOnce();
     }catch(err){q('#authError').textContent=err.message||'Login failed.';q('#authError').classList.add('show')}
     finally{q('#authLoading').classList.remove('show')}
   });
@@ -347,10 +355,11 @@
       if(event==='PASSWORD_RECOVERY'){
         openPasswordRecovery();
       }else if(event==='SIGNED_IN'){
-        if(session)showChooser().catch(function(e){console.error(e)});
+        if(session)openChooserOnce().catch(function(e){console.error(e)});
       }else if(event==='SIGNED_OUT'){
         currentWorkspaceId=null;window.__mcWorkspaceId=null;workspaceMemberships=[];
         if(workspaceChannel){supabaseClient.removeChannel(workspaceChannel).catch(function(){})}
+        if(authBooting) return;
         q('#mcWorkspaceScreen')&&q('#mcWorkspaceScreen').classList.remove('show');
         q('.app-shell').style.display='none';
         q('#authScreen').classList.add('show');
@@ -417,36 +426,39 @@
   window.__mcShowChooser = showChooser;
   injectUI();
   setTimeout(async function(){
+    authBooting=true;
     try{
       if(window.location.search.includes('reset=1') || window.location.hash.includes('type=recovery')) openPasswordRecovery();
+      // Never clear auth/session storage during startup. Only legacy app data is safe to remove.
       localStorage.removeItem('mess-calculator-v8');
-      // Restore the Supabase session before deciding whether the user needs to log in.
       let session=null,lastError=null;
-      for(let attempt=0;attempt<10;attempt++){
-        const result=await supabaseClient.auth.getSession();
-        if(result.error){lastError=result.error;break}
-        session=result.data&&result.data.session;
-        if(session)break;
-        await new Promise(resolve=>setTimeout(resolve,300));
-      }
+      const result=await supabaseClient.auth.getSession();
+      if(result.error){lastError=result.error;}
+      else session=result.data&&result.data.session;
       if(lastError)throw lastError;
-      // If the access token is stale but a refresh token is still persisted,
-      // explicitly refresh once before deciding that the user is logged out.
+
+      // If the stored access token is unavailable/expired, use the persisted refresh token.
       if(!session){
         const refreshed=await supabaseClient.auth.refreshSession();
-        if(!refreshed.error&&refreshed.data&&refreshed.data.session)session=refreshed.data.session;
+        if(!refreshed.error&&refreshed.data&&refreshed.data.session) session=refreshed.data.session;
       }
+
       currentUser=session&&session.user?session.user:null;
       if(session){
-        await showChooser();
+        await openChooserOnce();
       }else{
         q('#authScreen').classList.add('show');
         q('.app-shell').style.display='none';
       }
     }catch(e){
       console.error('Startup auth restore failed:',e);
-      q('#authScreen').classList.add('show');
-      q('.app-shell').style.display='none';
+      // Do not overwrite a possibly-restorable session with a login screen until startup is done.
+      if(!currentUser){
+        q('#authScreen').classList.add('show');
+        q('.app-shell').style.display='none';
+      }
+    }finally{
+      authBooting=false;
     }
   },0);
 })();
