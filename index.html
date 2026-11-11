@@ -140,7 +140,6 @@ body[data-theme="bw"] .share-summary{background:#fafafa;border-color:#a1a1aa;col
       </div>
       <div class="top-actions">
         <div class="user-actions"><span id="roleBadge" class="role-badge">Checking access…</span><span id="onlineStatus" class="online-status">Connecting…</span><button class="logout-btn" id="logoutBtn">Log out</button></div>
-        <button class="secondary-btn" id="exportBtn">Export Data</button>
         <button class="primary-btn manager-only" data-open-modal="expenseModal">+ Add Expense</button>
       </div>
     </header>
@@ -592,6 +591,118 @@ function renderMembers(){
  const ms=memberStats();
  $('#view-members').innerHTML=`<div class="toolbar"><div><div class="eyebrow">People in the mess</div><h3>Members</h3></div><button class="secondary-btn admin-only" id="addMemberBtn">+ Add Member</button></div><div class="summary-banner"><strong>Member cost summary</strong><p>Total Deposit includes regular deposits, transfer credits, and Personal Money paid for the mess. Withdrawals and transfer-outs reduce it.</p></div><div class="member-grid">${ms.map(m=>`<div class="member-card"><div class="person"><div class="avatar">${esc(m.name[0])}</div><div><strong>${esc(m.name)}</strong><small>${m.id===state.mess.managerId?'Manager':'Member'}</small></div>${m.id===state.mess.managerId?'':`<button class="danger-btn" style="margin-left:auto" data-delete-member="${m.id}" title="Remove member">Delete</button>`}</div><div class="member-meta"><div><div class="metric-label">Total Deposit</div><div class="metric-value">${money(m.deposit)}</div></div><div><div class="metric-label">Food Cost</div><div class="metric-value">${money(m.foodCost)}</div></div><div><div class="metric-label">Other Cost</div><div class="metric-value">${money(m.otherCost)}</div></div><div><div class="metric-label">Total Cost</div><div class="metric-value">${money(m.totalCost)}</div></div><div><div class="metric-label">Settlement</div><div class="metric-value ${m.balance>=0?'money-positive':'money-negative'}">${m.balance>=0?'+':'-'}${money(Math.abs(m.balance))}</div></div></div></div>`).join('')}</div>`;
 }
+
+function downloadFullReport(){
+  try{
+    const t=totals();
+    const ms=memberStats();
+    const members=[...state.members];
+    const meals=[...activeMeals()].sort((a,b)=>a.date.localeCompare(b.date));
+    const expenses=[...activeExpenses()].sort((a,b)=>a.date.localeCompare(b.date));
+    const funds=[...activeFund()].sort((a,b)=>a.date.localeCompare(b.date));
+    const daily=dailyRows().sort((a,b)=>a.date.localeCompare(b.date));
+
+    const rows=[];
+    const add=(...cells)=>rows.push(cells.map(v=>v==null?'':String(v)));
+    const moneyCsv=v=>Number(v||0).toFixed(2);
+    const memberNameById=id=>members.find(m=>m.id===id)?.name||'—';
+
+    // Report header / summary
+    add('MESS CALCULATOR - FULL REPORT');
+    add('Mess',state.mess?.name||'');
+    add('Month',monthName(currentMonth()));
+    add('Generated',new Date().toLocaleString());
+    add('');
+    add('MONTH SUMMARY');
+    add('Total Members',members.length);
+    add('Total Meals',t.totalMeals);
+    add('Meal Cost',moneyCsv(t.mealCost));
+    add('Other Cost',moneyCsv(t.otherCost));
+    add('Total Expense',moneyCsv(t.totalExpense));
+    add('Meal Rate',moneyCsv(t.mealRate));
+    add('Total Deposits',moneyCsv(t.deposits));
+    add('Total Withdrawals',moneyCsv(t.withdrawals));
+    add('Mess Fund Balance',moneyCsv(t.fundBalance));
+    add('');
+    
+    // Every member's complete monthly summary.
+    add('MEMBER DETAILS');
+    add('Member ID','Name','Email','Role','Total Meals','Opening Balance','Fund Deposit/Net Deposit','Personal Money Paid','Food Cost','Other Cost','Total Cost','Settlement');
+    ms.forEach(m=>{
+      add(
+        m.id,
+        m.name||'',
+        m.email||'',
+        m.id===state.mess.managerId?'Manager':'Member',
+        m.meals,
+        moneyCsv(m.opening),
+        moneyCsv(m.deposit),
+        moneyCsv(m.personalPaid),
+        moneyCsv(m.foodCost),
+        moneyCsv(m.otherCost),
+        moneyCsv(m.totalCost),
+        moneyCsv(m.balance)
+      );
+    });
+    add('');
+
+    // Daily meal details for every member.
+    add('DAILY MEALS');
+    add('Date',...members.map(m=>m.name||'Member'), 'Total Meals');
+    meals.forEach(r=>{
+      const total=members.reduce((s,m)=>s+Number(r.counts?.[m.id]||0),0);
+      add(r.date,...members.map(m=>Number(r.counts?.[m.id]||0)),total);
+    });
+    add('');
+
+    // Every expense, including who paid and who shares it.
+    add('EXPENSE DETAILS');
+    add('Date','Expense','Category','Amount','Paid By','Payment Source','Shared Members','Shared Member Count');
+    expenses.forEach(e=>{
+      const shared=(e.sharedBy||[]).map(memberNameById).join(', ');
+      add(e.date,e.name,e.category,moneyCsv(e.amount),memberNameById(e.paidBy),e.source==='personal'?'Personal Money':'Mess Fund',shared,(e.sharedBy||[]).length);
+    });
+    add('');
+
+    // Deposits, withdrawals and transfers.
+    add('FUND TRANSACTIONS');
+    add('Date','Type','Member / From','To','Amount','Note');
+    funds.forEach(e=>{
+      if(e.type==='transfer'){
+        add(e.date,'Transfer',memberNameById(e.fromMember),memberNameById(e.toMember),moneyCsv(e.amount),e.note||'');
+      }else{
+        add(e.date,e.type==='deposit'?'Deposit':'Withdrawal',memberNameById(e.member),'',moneyCsv(e.amount),e.note||'');
+      }
+    });
+    add('');
+
+    // Date-wise financial summary.
+    add('DAILY SUMMARY');
+    add('Date','Total Meals','Deposits','Withdrawals','Transfers','Meal Cost','Other Cost');
+    daily.forEach(r=>add(r.date,r.mealTotal,moneyCsv(r.deposits),moneyCsv(r.withdrawals),moneyCsv(r.transfers),moneyCsv(r.mealCost),moneyCsv(r.otherCost)));
+
+    // CSV escaping protects commas, quotes and line breaks in names/notes.
+    const csv=rows.map(row=>row.map(value=>{
+      const s=String(value??'');
+      return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+    }).join(',')).join('\r\n');
+
+    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='mess-report-'+currentMonth()+'.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    toast('Report downloaded','All member details, meals, expenses and fund transactions are included.','info');
+  }catch(err){
+    console.error('Full report download failed:',err);
+    toast('Download failed',err.message||'Could not create the report.','error');
+  }
+}
+
 function renderReports(){
  const t=totals(), daily=dailyRows();
  const mealsRows=[...activeMeals()].sort((a,b)=>b.date.localeCompare(a.date));
@@ -605,7 +716,7 @@ function renderReports(){
  ];
  const tabButtons=tabs.map(([id,label],i)=>`<button class="report-tab ${i===0?'active':''}" data-report-tab="${id}">${label}</button>`).join('');
  const empty=col=>`<tr><td colspan="${col}"><div class="empty">No records for this section.</div></td></tr>`;
- $('#view-reports').innerHTML=`<div class="toolbar"><div><div class="eyebrow">Organized monthly ledger</div><h3>${monthName(currentMonth())} Report</h3><p class="muted">Use the tabs to find exactly the transaction you need.</p></div><button class="secondary-btn" id="printReport">Print Report</button></div>
+ $('#view-reports').innerHTML=`<div class="toolbar"><div><div class="eyebrow">Organized monthly ledger</div><h3>${monthName(currentMonth())} Report</h3><p class="muted">Use the tabs to find exactly the transaction you need.</p></div><button class="secondary-btn" id="printReport">⬇ Download Full Report</button></div>
  <div class="report-grid"><div class="report-card"><h4>Food / Meal Cost</h4><div class="stat-value">${money(t.mealCost)}</div><div class="muted">${t.totalMeals} total meals</div></div><div class="report-card"><h4>Other Cost</h4><div class="stat-value">${money(t.otherCost)}</div><div class="muted">Non-food expenses</div></div><div class="report-card"><h4>Total Cost</h4><div class="stat-value">${money(t.totalExpense)}</div><div class="muted">Food + other</div></div><div class="report-card"><h4>Meal Rate</h4><div class="stat-value">${money(t.mealRate)}</div><div class="muted">Calculated automatically</div></div></div>
  <div class="report-tabs">${tabButtons}</div>
  <div class="report-panels">
@@ -885,7 +996,7 @@ function setup(){
    if(e.target.id==='fundTransferBtn'){openModal('fundModal');setFundMode('transfer');}
    if(e.target.id==='changeManagerBtn'||e.target.id==='settingsManager')changeManager();
    if(e.target.id==='newMonthBtn')openModal('newMonthModal');
-   if(e.target.id==='printReport')window.print();
+   if(e.target.id==='printReport')downloadFullReport();
    if(e.target.id==='renameMess'){const n=prompt('Mess name',state.mess.name);if(n?.trim()){const o=state.mess.name;state.mess.name=n.trim();addNotification('Mess renamed',`${o} → ${state.mess.name}`);save();toast('Mess renamed',state.mess.name,'info');}}
    if(e.target.id==='resetData'&&confirm('Reset all local data?')){state=migrate(structuredClone(defaultState));addNotification('Data reset','All local data was reset');save();}
    const delMem=e.target.closest('[data-delete-member]');
@@ -1086,6 +1197,6 @@ $('#joinForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=n
 
 $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentRole='member';document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');});
 /* Auth state is handled by workspace-v10.js to avoid refresh-time session races. */</script>
-<script src="workspace-v10.js?v=20261111-auth-profile-fix"></script>
+<script src="workspace-v10.js?v=20261111-full-report"></script>
 </body>
 </html>
