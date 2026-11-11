@@ -291,18 +291,48 @@
   });
 
   replaceForm('#joinForm',async function(e){
-    e.preventDefault();q('#joinError').classList.remove('show');q('#joinLoading').classList.add('show');
+    e.preventDefault();
+    q('#joinError').classList.remove('show');
+    q('#joinLoading').classList.add('show');
     try{
-      const fd=new FormData(e.target),name=String(fd.get('name')||'').trim(),email=String(fd.get('email')||'').trim().toLowerCase(),password=String(fd.get('password')||''),confirm=String(fd.get('confirmPassword')||'');
+      const fd=new FormData(e.target);
+      const name=String(fd.get('name')||'').trim();
+      const email=String(fd.get('email')||'').trim().toLowerCase();
+      const password=String(fd.get('password')||'');
+      const confirm=String(fd.get('confirmPassword')||'');
+      if(!name)throw new Error('Enter your full name.');
       if(password!==confirm)throw new Error('Passwords do not match.');
       if(password.length<6)throw new Error('Password must be at least 6 characters.');
-      const r=await supabaseClient.auth.signUp({email:email,password:password,options:{data:{full_name:name},emailRedirectTo:APP_URL}});
+
+      const r=await supabaseClient.auth.signUp({
+        email,
+        password,
+        options:{data:{full_name:name},emailRedirectTo:APP_URL}
+      });
       if(r.error)throw r.error;
+
       e.target.reset();
-      q('#joinError').textContent='Account created. Check your email, verify it, then this page will reopen and show Manager / Member choices.';
+
+      // When email confirmation is enabled, return the user to the login form
+      // immediately instead of leaving them stuck on the Create Account form.
+      if(!r.data.session){
+        q('#joinForm').style.display='none';
+        q('#loginForm').style.display='block';
+        q('#authIntro').textContent='Account created. Verify your email, then sign in with your new account.';
+        q('#authError').textContent='Account created successfully. We sent a verification link to '+email+'. After verification, return here and sign in.';
+        q('#authError').classList.add('show');
+        q('#loginForm [name="email"]').value=email;
+        return;
+      }
+
+      currentUser=r.data.user||currentUser;
+      await openChooserOnce();
+    }catch(err){
+      q('#joinError').textContent=err.message||'Could not create account.';
       q('#joinError').classList.add('show');
-    }catch(err){q('#joinError').textContent=err.message||'Could not create account.';q('#joinError').classList.add('show')}
-    finally{q('#joinLoading').classList.remove('show')}
+    }finally{
+      q('#joinLoading').classList.remove('show');
+    }
   });
 
   q('#forgotPasswordBtn')?.addEventListener('click',sendPasswordReset);
@@ -424,6 +454,35 @@
   })();
 
   window.__mcShowChooser = showChooser;
+
+  async function handleAuthCallback(){
+    const url=new URL(window.location.href);
+    const search=url.searchParams;
+    const hash=window.location.hash||'';
+    const hasAuthHash=hash.includes('access_token=')||hash.includes('refresh_token=')||hash.includes('type=signup')||hash.includes('type=recovery');
+    const code=search.get('code');
+    const tokenHash=search.get('token_hash');
+    const tokenType=search.get('type');
+
+    // PKCE callback.
+    if(code){
+      const r=await supabaseClient.auth.exchangeCodeForSession(code);
+      if(r.error)throw r.error;
+      history.replaceState({},document.title,APP_URL);
+      return r.data&&r.data.session?r.data.session:null;
+    }
+
+    // Token-hash confirmation callback (used by Supabase email verification).
+    if(tokenHash && tokenType){
+      const r=await supabaseClient.auth.verifyOtp({token_hash:tokenHash,type:tokenType});
+      if(r.error)throw r.error;
+      history.replaceState({},document.title,APP_URL);
+      return r.data&&r.data.session?r.data.session:null;
+    }
+
+    return hasAuthHash?null:null;
+  }
+
   injectUI();
   setTimeout(async function(){
     authBooting=true;
@@ -432,7 +491,9 @@
       // Never clear auth/session storage during startup. Only legacy app data is safe to remove.
       localStorage.removeItem('mess-calculator-v8');
       let session=null,lastError=null;
-      const result=await supabaseClient.auth.getSession();
+      const callbackSession=await handleAuthCallback();
+      if(callbackSession)session=callbackSession;
+      const result=session?{error:null,data:{session}}:await supabaseClient.auth.getSession();
       if(result.error){lastError=result.error;}
       else session=result.data&&result.data.session;
       if(lastError)throw lastError;
@@ -445,6 +506,9 @@
 
       currentUser=session&&session.user?session.user:null;
       if(session){
+        if(window.location.hash.includes('access_token=')||window.location.hash.includes('type=signup')||window.location.hash.includes('type=recovery')){
+          history.replaceState({},document.title,APP_URL);
+        }
         await openChooserOnce();
       }else{
         q('#authScreen').classList.add('show');
