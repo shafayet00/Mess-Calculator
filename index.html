@@ -594,124 +594,23 @@ function renderMembers(){
 
 function downloadFullReport(){
   try{
-    // Generate a real PDF in-browser with no external PDF library.
-    // This avoids CDN/loading failures and works with one click.
     const t=totals();
     const ms=memberStats();
-    const members=[...state.members];
-    const meals=[...activeMeals()].sort((a,b)=>a.date.localeCompare(b.date));
-    const expenses=[...activeExpenses()].sort((a,b)=>a.date.localeCompare(b.date));
-    const funds=[...activeFund()].sort((a,b)=>a.date.localeCompare(b.date));
-    const daily=dailyRows().sort((a,b)=>a.date.localeCompare(b.date));
-    const memberNameById=id=>members.find(m=>m.id===id)?.name||'Unknown';
-    const moneyPdf=v=>Number(v||0).toFixed(2);
     const reportMonth=monthName(currentMonth());
     const safeMonth=String(currentMonth()).replace(/[^0-9-]/g,'-');
 
+    // The PDF intentionally contains only the two useful sections:
+    // 1) Month Summary
+    // 2) Member Cost Summary
     const esc=s=>String(s??'')
       .replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)')
       .replace(/[^\x20-\x7E]/g,'?');
 
-    const wrap=(value,max=105)=>{
-      const s=String(value??'').trim();
-      if(!s)return [''];
-      const words=s.split(/\s+/),out=[];let line='';
-      for(const word of words){
-        if((line+' '+word).trim().length>max){
-          if(line)out.push(line);
-          line=word;
-        }else line=(line+' '+word).trim();
-      }
-      if(line)out.push(line);
-      return out;
+    const fmt=v=>Number(v||0).toFixed(2);
+    const shortName=s=>{
+      const v=String(s||'Member');
+      return v.length>27?v.slice(0,27)+'...':v;
     };
-
-    const pages=[];
-    let lines=[];
-    const addLine=(text='',indent=0)=>{
-      wrap(text,105-Math.floor(indent/4)).forEach((part,i)=>{
-        lines.push({text:(i===0?' '.repeat(indent):' '.repeat(indent))+part});
-      });
-    };
-    const addSection=(title,headers,rows)=>{
-      addLine('');
-      addLine('==============================================================');
-      addLine(title.toUpperCase());
-      addLine('--------------------------------------------------------------');
-      addLine(headers.join(' | '));
-      addLine('--------------------------------------------------------------');
-      if(!rows.length)addLine('No records found.');
-      rows.forEach(row=>addLine(row.map(v=>String(v??'')).join(' | ')));
-    };
-    const flush=()=>{
-      if(lines.length)pages.push(lines);
-      lines=[];
-    };
-
-    addLine('MESS CALCULATOR');
-    addLine('FULL MONTHLY REPORT');
-    addLine((state.mess?.name||'Mess')+' - '+reportMonth);
-    addLine('Generated: '+new Date().toLocaleString());
-    addLine('');
-    addLine('MONTH SUMMARY');
-    addLine('Total Members: '+members.length);
-    addLine('Total Meals: '+t.totalMeals);
-    addLine('Food / Meal Cost: '+moneyPdf(t.mealCost));
-    addLine('Other Cost: '+moneyPdf(t.otherCost));
-    addLine('Total Expense: '+moneyPdf(t.totalExpense));
-    addLine('Meal Rate: '+moneyPdf(t.mealRate));
-    addLine('Total Deposits: '+moneyPdf(t.deposits));
-    addLine('Total Withdrawals: '+moneyPdf(t.withdrawals));
-    addLine('Transfers: '+moneyPdf(t.transfers));
-    addLine('Mess Fund Balance: '+moneyPdf(t.fundBalance));
-
-    addSection('Member Details',
-      ['ID','Name','Email','Role','Meals','Opening','Deposit','Personal Paid','Food','Other','Total','Settlement'],
-      ms.map(m=>[
-        m.id,m.name||'',m.email||'',m.id===state.mess.managerId?'Manager':'Member',
-        m.meals,moneyPdf(m.opening),moneyPdf(m.deposit),moneyPdf(m.personalPaid),
-        moneyPdf(m.foodCost),moneyPdf(m.otherCost),moneyPdf(m.totalCost),moneyPdf(m.balance)
-      ])
-    );
-
-    addSection('Daily Meals',
-      ['Date',...members.map(m=>(m.name||'Member').slice(0,16)),'Total'],
-      meals.map(r=>[
-        r.date,...members.map(m=>Number(r.counts?.[m.id]||0)),
-        members.reduce((s,m)=>s+Number(r.counts?.[m.id]||0),0)
-      ])
-    );
-
-    addSection('Expense Details',
-      ['Date','Expense','Category','Amount','Paid By','Source','Shared Members'],
-      expenses.map(e=>[
-        e.date,e.name||'',e.category||'',moneyPdf(e.amount),memberNameById(e.paidBy),
-        e.source==='personal'?'Personal Money':'Mess Fund',
-        (e.sharedBy||[]).map(memberNameById).join(', ')||'None'
-      ])
-    );
-
-    addSection('Fund Transactions',
-      ['Date','Type','From / Member','To','Amount','Note'],
-      funds.map(e=>e.type==='transfer'
-        ? [e.date,'Transfer',memberNameById(e.fromMember),memberNameById(e.toMember),moneyPdf(e.amount),e.note||'']
-        : [e.date,e.type==='deposit'?'Deposit':'Withdrawal',memberNameById(e.member),'',moneyPdf(e.amount),e.note||'']
-      )
-    );
-
-    addSection('Daily Summary',
-      ['Date','Meals','Deposits','Withdrawals','Transfers','Meal Cost','Other Cost'],
-      daily.map(r=>[
-        r.date,r.mealTotal,moneyPdf(r.deposits),moneyPdf(r.withdrawals),
-        moneyPdf(r.transfers),moneyPdf(r.mealCost),moneyPdf(r.otherCost)
-      ])
-    );
-
-    // Keep a readable amount of text on each A4 landscape page.
-    const maxLines=43;
-    while(lines.length){
-      pages.push(lines.splice(0,maxLines));
-    }
 
     const W=842,H=595;
     const objects=[];
@@ -719,36 +618,112 @@ function downloadFullReport(){
     const catalog=addObj('');
     const pagesObj=addObj('');
     const font=addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-    const pageIds=[];
 
-    pages.forEach((page,pageIndex)=>{
-      const content=[];
-      content.push('BT');
-      content.push('/F1 16 Tf');
-      content.push('40 555 Td');
-      content.push('('+esc(pageIndex===0?'MESS CALCULATOR - FULL MONTHLY REPORT':'MESS CALCULATOR - FULL MONTHLY REPORT (continued)')+') Tj');
-      content.push('/F1 9 Tf');
-      content.push('0 -22 Td');
+    const c=[];
+    const text=(x,y,size,value,bold=false)=>{
+      c.push('/F1 '+size+' Tf');
+      c.push(bold?'/F1 1 Tf':'/F1 0 Tf');
+      c.push(x+' '+y+' Td');
+      c.push('('+esc(value)+') Tj');
+      c.push((-x)+' '+(-y)+' Td');
+    };
+    const rect=(x,y,w,h,fill)=>{
+      const [r,g,b]=fill;
+      c.push(r+' '+g+' '+b+' rg');
+      c.push(x+' '+y+' '+w+' '+h+' re f');
+    };
+    const line=(x1,y1,x2,y2)=>{
+      c.push('0.88 0.90 0.94 RG');
+      c.push('1 w');
+      c.push(x1+' '+y1+' m '+x2+' '+y2+' l S');
+    };
 
-      page.forEach((row,idx)=>{
-        const size=idx<4&&pageIndex===0?9:7.5;
-        content.push('/F1 '+size+' Tf');
-        content.push('0 -'+(idx===0?0:11)+' Td');
-        content.push('('+esc(row.text)+') Tj');
-      });
+    c.push('q');
 
-      content.push('0 -10 Td');
-      content.push('('+esc((state.mess?.name||'Mess')+' | '+reportMonth+' | Page '+(pageIndex+1)+' of '+pages.length)+') Tj');
-      content.push('ET');
+    // Background
+    rect(0,0,W,H,[0.97,0.98,1]);
 
-      const stream=content.join('\n');
-      const contentId=addObj('<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream');
-      const pageId=addObj('<< /Type /Page /Parent '+pagesObj+' 0 R /MediaBox [0 0 '+W+' '+H+'] /Resources << /Font << /F1 '+font+' 0 R >> >> /Contents '+contentId+' 0 R >>');
-      pageIds.push(pageId);
+    // Header
+    rect(0,515,W,80,[0.06,0.10,0.18]);
+    text(42,552,23,'MESS CALCULATOR',true);
+    text(42,532,10,'Monthly financial report');
+    text(800,552,14,reportMonth,true);
+    text(800,532,9,'Generated '+new Date().toLocaleDateString(),false);
+
+    // Month Summary card
+    rect(30,370,782,125,[1,1,1]);
+    text(48,466,16,'Month Summary',true);
+    text(48,448,9,'Overview for '+reportMonth);
+
+    const summary=[
+      ['Total Members',String(ms.length)],
+      ['Total Meals',String(t.totalMeals)],
+      ['Food / Meal Cost','BDT '+fmt(t.mealCost)],
+      ['Other Cost','BDT '+fmt(t.otherCost)],
+      ['Total Expense','BDT '+fmt(t.totalExpense)],
+      ['Meal Rate','BDT '+fmt(t.mealRate)],
+      ['Total Deposits','BDT '+fmt(t.deposits)],
+      ['Total Withdrawals','BDT '+fmt(t.withdrawals)],
+      ['Transfers','BDT '+fmt(t.transfers)],
+      ['Mess Fund Balance','BDT '+fmt(t.fundBalance)]
+    ];
+    const colX=[48,205,362,519,676];
+    summary.forEach((item,i)=>{
+      const col=i%5,row=Math.floor(i/5);
+      const x=colX[col], y=418-row*38;
+      text(x,y+10,7,item[0].toUpperCase(),false);
+      text(x,y-4,11,item[1],true);
     });
 
+    // Member Cost Summary
+    text(30,342,16,'Member Cost Summary',true);
+    text(30,326,9,'Deposit, food cost, other cost, total cost and settlement for every member');
+
+    const cardW=248,cardH=105,gapX=25,gapY=14;
+    ms.forEach((m,i)=>{
+      const col=i%3,row=Math.floor(i/3);
+      const x=30+col*(cardW+gapX);
+      const y=205-row*(cardH+gapY);
+
+      rect(x,y,cardW,cardH,[1,1,1]);
+
+      // Avatar circle
+      rect(x+12,y+75,30,20,[0.96,0.94,0.95]);
+      text(x+21,y+81,10,String(m.name||'M').charAt(0).toUpperCase(),true);
+
+      text(x+50,y+86,11,shortName(m.name),true);
+      text(x+50,y+72,7,m.id===state.mess.managerId?'Manager':'Member',false);
+
+      // Two-column values
+      const lx=x+14,rx=x+132;
+      text(lx,y+54,6,'TOTAL DEPOSIT');
+      text(lx,y+42,9,'BDT '+fmt(m.deposit),true);
+      text(rx,y+54,6,'FOOD COST');
+      text(rx,y+42,9,'BDT '+fmt(m.foodCost),true);
+
+      text(lx,y+25,6,'OTHER COST');
+      text(lx,y+13,9,'BDT '+fmt(m.otherCost),true);
+      text(rx,y+25,6,'TOTAL COST');
+      text(rx,y+13,9,'BDT '+fmt(m.totalCost),true);
+
+      // Settlement line at bottom/right
+      text(x+132,y+1,6,'SETTLEMENT');
+      text(x+180,y+1,8,(Number(m.balance)>=0?'+':'-')+'BDT '+fmt(Math.abs(m.balance)),true);
+    });
+
+    // Footer
+    line(30,26,812,26);
+    text(30,13,7,'Mess Calculator • '+reportMonth);
+    text(812,13,7,'Member cost summary',false);
+
+    c.push('Q');
+
+    const stream=c.join('\n');
+    const contentId=addObj('<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream');
+    const pageId=addObj('<< /Type /Page /Parent '+pagesObj+' 0 R /MediaBox [0 0 '+W+' '+H+'] /Resources << /Font << /F1 '+font+' 0 R >> >> /Contents '+contentId+' 0 R >>');
+
     objects[catalog-1]='<< /Type /Catalog /Pages '+pagesObj+' 0 R >>';
-    objects[pagesObj-1]='<< /Type /Pages /Kids ['+pageIds.map(id=>id+' 0 R').join(' ') +'] /Count '+pageIds.length+' >>';
+    objects[pagesObj-1]='<< /Type /Pages /Kids ['+pageId+' 0 R] /Count 1 >>';
 
     let pdf='%PDF-1.4\n%\xFF\xFF\xFF\xFF\n';
     const offsets=[0];
@@ -759,7 +734,9 @@ function downloadFullReport(){
     const xref=pdf.length;
     pdf+='xref\n0 '+(objects.length+1)+'\n';
     pdf+='0000000000 65535 f \n';
-    for(let i=1;i<=objects.length;i++)pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';
+    for(let i=1;i<=objects.length;i++){
+      pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';
+    }
     pdf+='trailer\n<< /Size '+(objects.length+1)+' /Root '+catalog+' 0 R >>\n';
     pdf+='startxref\n'+xref+'\n%%EOF';
 
@@ -767,12 +744,12 @@ function downloadFullReport(){
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
     a.href=url;
-    a.download='mess-full-report-'+safeMonth+'.pdf';
+    a.download='mess-report-'+safeMonth+'.pdf';
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1500);
-    toast('PDF downloaded','Complete monthly report downloaded successfully.','info');
+    toast('PDF downloaded','Clean monthly summary and member cost summary downloaded.','info');
   }catch(err){
     console.error('PDF report download failed:',err);
     toast('PDF download failed',err.message||'Could not create the PDF report.','error');
@@ -1273,6 +1250,6 @@ $('#joinForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=n
 
 $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentRole='member';document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');});
 /* Auth state is handled by workspace-v10.js to avoid refresh-time session races. */</script>
-<script src="workspace-v10.js?v=20261111-pdf-report-final2"></script>
+<script src="workspace-v10.js?v=20261111-pdf-report-clean"></script>
 </body>
 </html>
