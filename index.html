@@ -1271,11 +1271,10 @@ function initMobileShell(){
       <button class="mobile-nav-item" id="mobileMoreBtn"><span class="mn-icon">•••</span><span>More</span></button>
     </nav>`);
   const overlay=document.getElementById('mobileNavOverlay');
-  overlay.onclick=()=>document.getElementById('sidebar')?.classList.remove('open');
-  document.getElementById('mobileMoreBtn').onclick=()=>{
-    const side=document.getElementById('sidebar');
-    side?.classList.toggle('open');
-  };
+  const setDrawer=(open)=>{const side=document.getElementById('sidebar');if(!side)return;side.classList.toggle('open',open);if(overlay)overlay.style.display=open?'block':'none';};
+  overlay.onclick=()=>setDrawer(false);
+  document.getElementById('mobileMoreBtn').onclick=()=>setDrawer(!document.getElementById('sidebar')?.classList.contains('open'));
+  window.__mcSetMobileDrawer=setDrawer;
 }
 function syncMobileNav(view){
   document.querySelectorAll('.mobile-nav-item[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
@@ -1284,8 +1283,8 @@ function syncMobileNav(view){
 function setup(){
  initMobileShell();
  document.addEventListener('click',e=>{
-   const nav=e.target.closest('.nav-item[data-view], .mobile-nav-item[data-view]');if(nav){$('.nav-item').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.mobile-nav-item[data-view]').forEach(x=>x.classList.remove('active'));if(nav.classList.contains('nav-item'))nav.classList.add('active');else nav.classList.add('active');syncMobileNav(nav.dataset.view);$('.view').forEach(x=>x.classList.remove('active'));const target=$('#view-'+nav.dataset.view);if(target)target.classList.add('active');$('#pageTitle').textContent=nav.querySelector('span:last-child').textContent;if(nav.dataset.view==='settings'){try{window.__mcRenderSettings?.();window.setRoleUI?.();window.hideEditControlsForRole?.()}catch(err){console.error('Settings render failed:',err)}}if(innerWidth<760)$('#sidebar').classList.remove('open');}
-   const open=e.target.closest('[data-open-modal]');if(open)openModal(open.dataset.openModal);if(e.target.closest('[data-close-modal]'))closeModals();if(e.target.id==='menuBtn')$('#sidebar').classList.toggle('open');
+   const nav=e.target.closest('.nav-item[data-view], .mobile-nav-item[data-view]');if(nav){$('.nav-item').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.mobile-nav-item[data-view]').forEach(x=>x.classList.remove('active'));if(nav.classList.contains('nav-item'))nav.classList.add('active');else nav.classList.add('active');syncMobileNav(nav.dataset.view);$('.view').forEach(x=>x.classList.remove('active'));const target=$('#view-'+nav.dataset.view);if(target)target.classList.add('active');$('#pageTitle').textContent=nav.querySelector('span:last-child').textContent;if(nav.dataset.view==='settings'){try{window.__mcRenderSettings?.();window.setRoleUI?.();window.hideEditControlsForRole?.()}catch(err){console.error('Settings render failed:',err)}}if(innerWidth<760)window.__mcSetMobileDrawer?.(false);}
+   const open=e.target.closest('[data-open-modal]');if(open)openModal(open.dataset.openModal);if(e.target.closest('[data-close-modal]'))closeModals();if(e.target.id==='menuBtn'){const open=!$('#sidebar').classList.contains('open');window.__mcSetMobileDrawer?.(open);}
    if(e.target.id==='selectAllShare'){$$('#expenseShares input').forEach(x=>x.checked=true);updateShareSummary();}
    if(e.target.id==='fundDepositBtn'){openModal('fundModal');setFundMode('deposit');}
    if(e.target.id==='fundWithdrawBtn'){openModal('fundModal');setFundMode('withdrawal');}
