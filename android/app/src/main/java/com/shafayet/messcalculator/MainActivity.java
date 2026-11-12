@@ -3,7 +3,6 @@ package com.shafayet.messcalculator;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.graphics.Color;
-import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
@@ -11,13 +10,11 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import androidx.webkit.WebViewAssetLoader;
 
 public class MainActivity extends Activity {
     private WebView webView;
-    private WebViewAssetLoader assetLoader;
 
-    @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -35,34 +32,23 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setLoadWithOverviewMode(false);
         s.setUseWideViewPort(false);
-        s.setAllowFileAccess(false);
-        s.setAllowContentAccess(false);
+        s.setAllowFileAccess(true);
+        s.setAllowContentAccess(true);
         s.setMediaPlaybackRequiresUserGesture(false);
 
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
         webView.setWebChromeClient(new WebChromeClient());
-
-        assetLoader = new WebViewAssetLoader.Builder()
-                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
-                .build();
-
         webView.setWebViewClient(new WebViewClient() {
             @Override
-            public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                return assetLoader.shouldInterceptRequest(request.getUrl());
-            }
-
-            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                Uri u = request.getUrl();
-                String scheme = u.getScheme();
-                if ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) return false;
-                return true;
+                String scheme = request.getUrl().getScheme();
+                return !("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme) || "file".equalsIgnoreCase(scheme));
             }
         });
 
-        webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
+        // Load the exact UI bundled inside the APK. This prevents stale browser/WebView cache.
+        webView.loadUrl("file:///android_asset/index.html");
     }
 
     @Override
@@ -75,7 +61,6 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         if (webView != null) {
             webView.stopLoading();
-            webView.clearHistory();
             webView.destroy();
         }
         super.onDestroy();
