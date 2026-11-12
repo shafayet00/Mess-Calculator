@@ -128,7 +128,7 @@ body[data-theme="bw"] .share-summary{background:#fafafa;border-color:#a1a1aa;col
       <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span><span>Mess Settings</span></button>
       <button class="nav-item action-item" id="themeToggle"><span class="nav-icon">◐</span><span>Dark Theme</span></button>
       <div class="nav-divider"></div>
-      <button class="nav-item action-item admin-only" id="changeManagerBtn"><span class="nav-icon">♙</span><span>Change Manager</span></button>
+      <button class="nav-item action-item manager-only" id="changeManagerBtn"><span class="nav-icon">♙</span><span>Change Manager</span></button>
       <button class="nav-item action-item manager-only" id="newMonthBtn"><span class="nav-icon">＋</span><span>Start New Month</span></button>
     </nav>
     <div class="sidebar-footer"><span class="status-dot"></span> <span id="storageStatus">Cloud sync</span></div>
@@ -305,9 +305,9 @@ function save(){
   if(canEdit()) syncCurrentState().catch(err=>setCloudStatus('Sync failed',false));
 }
 
-function canEdit(){return currentRole==='admin'||currentRole==='manager';}
+function canEdit(){return currentRole==='manager';}
 function isAdmin(){return currentRole==='admin';}
-function isManager(){return currentRole==='manager'||currentRole==='admin';}
+function isManager(){return currentRole==='manager';}
 function setCloudStatus(text,ok=true){const el=$('#onlineStatus');if(el){el.textContent=text;el.className='online-status '+(ok?'ok':'bad');}const st=$('#storageStatus');if(st)st.textContent=ok?'Cloud synced':'Cloud sync issue';}
 function setRoleUI(){
   const badge=$('#roleBadge');if(badge){badge.textContent=currentRole==='admin'?'👑 Admin':currentRole==='manager'?'🛠️ Manager':'👤 Member';badge.className='role-badge '+currentRole;}
@@ -573,7 +573,7 @@ function renderDashboard(){
 }
 function renderMeals(){
  const rows=[...activeMeals()].sort((a,b)=>b.date.localeCompare(a.date));
- $('#view-meals').innerHTML=`<div class="toolbar"><div><div class="eyebrow">Daily meal tracking</div><h3>Meals</h3></div><div class="action-buttons"><button class="primary-btn" data-open-modal="mealModal">+ Add Meals</button></div></div>
+ $('#view-meals').innerHTML=`<div class="toolbar"><div><div class="eyebrow">Daily meal tracking</div><h3>Meals</h3></div><div class="action-buttons"><button class="primary-btn manager-only" data-open-modal="mealModal">+ Add Meals</button></div></div>
  <div class="panel"><div class="panel-head"><h3>Meal History</h3><span class="pill">Rate ${money(totals().mealRate)} / meal</span></div><div class="table-scroll"><table class="table"><thead><tr><th>Date</th>${state.members.map(m=>`<th>${esc(m.name)}</th>`).join('')}<th>Total</th><th>Actions</th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr><td>${dateLabel(r.date)}</td>${state.members.map(m=>`<td>${Number(r.counts?.[m.id]||0)}</td>`).join('')}<td><strong>${Object.values(r.counts||{}).reduce((a,b)=>a+Number(b||0),0)}</strong></td><td><div class="row-actions"><button class="mini-btn" data-edit-meal="${r.date}">Edit</button><button class="mini-btn danger" data-delete-meal="${r.id}">Delete</button></div></td></tr>`).join(''):`<tr><td colspan="${state.members.length+3}"><div class="empty">No meals recorded for this month.</div></td></tr>`}</tbody></table></div></div>`;
 }
 
@@ -593,7 +593,7 @@ function renderFund(){
 
 function renderMembers(){
  const ms=memberStats();
- $('#view-members').innerHTML=`<div class="toolbar"><div><div class="eyebrow">People in the mess</div><h3>Members</h3></div><button class="secondary-btn admin-only" id="addMemberBtn">+ Add Member</button></div><div class="summary-banner"><strong>Member cost summary</strong><p>Total Deposit includes regular deposits, transfer credits, and Personal Money paid for the mess. Withdrawals and transfer-outs reduce it.</p></div><div class="member-grid">${ms.map(m=>`<div class="member-card"><div class="person"><div class="avatar">${esc(m.name[0])}</div><div><strong>${esc(m.name)}</strong><small>${m.id===state.mess.managerId?'Manager':'Member'}</small></div>${m.id===state.mess.managerId?'':`<button class="danger-btn" style="margin-left:auto" data-delete-member="${m.id}" title="Remove member">Delete</button>`}</div><div class="member-meta"><div><div class="metric-label">Total Deposit</div><div class="metric-value">${money(m.deposit)}</div></div><div><div class="metric-label">Food Cost</div><div class="metric-value">${money(m.foodCost)}</div></div><div><div class="metric-label">Other Cost</div><div class="metric-value">${money(m.otherCost)}</div></div><div><div class="metric-label">Total Cost</div><div class="metric-value">${money(m.totalCost)}</div></div><div><div class="metric-label">Settlement</div><div class="metric-value ${m.balance>=0?'money-positive':'money-negative'}">${m.balance>=0?'+':'-'}${money(Math.abs(m.balance))}</div></div></div></div>`).join('')}</div>`;
+ $('#view-members').innerHTML=`<div class="toolbar"><div><div class="eyebrow">People in the mess</div><h3>Members</h3></div><button class="secondary-btn manager-only" id="addMemberBtn">+ Add Member</button></div><div class="summary-banner"><strong>Member cost summary</strong><p>Total Deposit includes regular deposits, transfer credits, and Personal Money paid for the mess. Withdrawals and transfer-outs reduce it.</p></div><div class="member-grid">${ms.map(m=>`<div class="member-card"><div class="person"><div class="avatar">${esc(m.name[0])}</div><div><strong>${esc(m.name)}</strong><small>${m.id===state.mess.managerId?'Manager':'Member'}</small></div>${m.id===state.mess.managerId?'':`<button class="danger-btn" style="margin-left:auto" data-delete-member="${m.id}" title="Remove member">Delete</button>`}</div><div class="member-meta"><div><div class="metric-label">Total Deposit</div><div class="metric-value">${money(m.deposit)}</div></div><div><div class="metric-label">Food Cost</div><div class="metric-value">${money(m.foodCost)}</div></div><div><div class="metric-label">Other Cost</div><div class="metric-value">${money(m.otherCost)}</div></div><div><div class="metric-label">Total Cost</div><div class="metric-value">${money(m.totalCost)}</div></div><div><div class="metric-label">Settlement</div><div class="metric-value ${m.balance>=0?'money-positive':'money-negative'}">${m.balance>=0?'+':'-'}${money(Math.abs(m.balance))}</div></div></div></div>`).join('')}</div>`;
 }
 
 function downloadFullReport(){
@@ -940,7 +940,7 @@ function renderSettings(){
  const manager=state.members.find(m=>m.id===state.mess.managerId);
  const d=state.mess.defaultMeals||{breakfast:1,lunch:1,dinner:1};
  state.mess.defaultMeals=d;
- $('#view-settings').innerHTML=`<div class="panel"><div class="eyebrow">Workspace</div><h3>Mess Settings</h3><div class="settings-list" style="margin-top:16px"><div class="setting"><div><strong>Mess name</strong><div class="muted">${esc(state.mess.name)}</div></div><button class="secondary-btn admin-only" id="renameMess">Edit</button></div><div class="setting"><div><strong>Current manager</strong><div class="muted">${esc(manager?.name||'Not set')}</div></div><button class="secondary-btn admin-only" id="settingsManager">Change</button></div><div class="setting manager-only"><div><strong>Invite code</strong><div class="muted">Share this code with members to let them join this mess.</div></div><div style="display:flex;gap:8px;align-items:center"><code id="messInviteCode" style="font-weight:800;letter-spacing:1px;font-size:16px">${esc(window.__mcInviteCode||'Not available')}</code><button class="secondary-btn" type="button" id="copyInviteCode" onclick="copyMessInviteCode()">Copy</button></div></div><div class="setting"><div><strong>Default meal</strong><div class="muted">Breakfast ${d.breakfast} · Lunch ${d.lunch} · Dinner ${d.dinner}</div></div><button class="secondary-btn manager-only" id="editDefaultMeal">Edit</button></div><div class="setting"><div><strong>Calculation model</strong><div class="muted">Meal Cost + selectable Share Cost + Mess Fund + member settlement</div></div><span class="pill green">Active</span></div><div class="setting"><div><strong>Theme</strong><div class="muted">${state.mess.theme==='dark'?'Full Dark':state.mess.theme==='bw'?'Black & White':'White / Light'} theme</div></div><button class="secondary-btn" id="themeToggleSettings">Switch</button></div><div class="setting"><div><strong>Storage</strong><div class="muted">Supabase cloud database with role-based access</div></div><button class="secondary-btn admin-only" id="resetData">Reset</button></div></div></div>`;
+ $('#view-settings').innerHTML=`<div class="panel"><div class="eyebrow">Workspace</div><h3>Mess Settings</h3><div class="settings-list" style="margin-top:16px"><div class="setting"><div><strong>Mess name</strong><div class="muted">${esc(state.mess.name)}</div></div><button class="secondary-btn admin-only" id="renameMess">Edit</button></div><div class="setting"><div><strong>Current manager</strong><div class="muted">${esc(manager?.name||'Not set')}</div></div><button class="secondary-btn manager-only" id="settingsManager">Change</button></div><div class="setting manager-only"><div><strong>Invite code</strong><div class="muted">Share this code with members to let them join this mess.</div></div><div style="display:flex;gap:8px;align-items:center"><code id="messInviteCode" style="font-weight:800;letter-spacing:1px;font-size:16px">${esc(window.__mcInviteCode||'Not available')}</code><button class="secondary-btn" type="button" id="copyInviteCode" onclick="copyMessInviteCode()">Copy</button></div></div><div class="setting"><div><strong>Default meal</strong><div class="muted">Breakfast ${d.breakfast} · Lunch ${d.lunch} · Dinner ${d.dinner}</div></div><button class="secondary-btn manager-only" id="editDefaultMeal">Edit</button></div><div class="setting"><div><strong>Calculation model</strong><div class="muted">Meal Cost + selectable Share Cost + Mess Fund + member settlement</div></div><span class="pill green">Active</span></div><div class="setting"><div><strong>Theme</strong><div class="muted">${state.mess.theme==='dark'?'Full Dark':state.mess.theme==='bw'?'Black & White':'White / Light'} theme</div></div><button class="secondary-btn" id="themeToggleSettings">Switch</button></div><div class="setting"><div><strong>Storage</strong><div class="muted">Supabase cloud database with role-based access</div></div><button class="secondary-btn admin-only" id="resetData">Reset</button></div></div></div>`;
 }
 function copyMessInviteCode(){
   const code=String(window.__mcInviteCode||'').trim();
@@ -968,7 +968,7 @@ function populateForms(withDefaults=false){
   if(!withDefaults) return;
   $('#expenseForm [name=date]').value=today();$('#mealForm [name=date]').value=today();$('#fundForm [name=date]').value=today();
 }
-function openModal(id){if(id==='expenseModal'||id==='mealModal'||id==='fundModal')resetEntryForms(); populateForms(true);$('#'+id).classList.add('open');if(id==='fundModal')setFundMode('deposit');if(id==='newMonthModal')prepareNewMonth();}
+function openModal(id){if(['expenseModal','mealModal','fundModal','newMonthModal'].includes(id)&&!isManager()){toast('Manager only','Only the current manager can use this action.','error');return;}if(id==='expenseModal'||id==='mealModal'||id==='fundModal')resetEntryForms(); populateForms(true);$('#'+id).classList.add('open');if(id==='fundModal')setFundMode('deposit');if(id==='newMonthModal')prepareNewMonth();}
 function closeModals(){$$('.modal-backdrop').forEach(x=>x.classList.remove('open'));resetEntryForms();}
 function setFundMode(type){
  $('#fundForm [name=type]').value=type;$('#fundModalTitle').textContent=type==='deposit'?'Add Deposit':type==='withdrawal'?'Withdraw Deposit':'Transfer Deposit';
@@ -978,11 +978,13 @@ function setFundMode(type){
 function prepareNewMonth(){const d=new Date(currentMonth()+'-01T00:00:00');d.setMonth(d.getMonth()+1);$('#newMonthForm [name=month]').value=d.toISOString().slice(0,7);renderCarryPreview(memberStats());const t=totals();$('#carryFundPreview').textContent=`Opening mess balance: ${money(t.fundBalance)}`;}
 function renderCarryPreview(ms){$('#carryPreview').innerHTML=ms.map(m=>`<div class="carry-row"><span>${esc(m.name)}</span><strong class="${m.balance>=0?'money-positive':'money-negative'}">${m.balance>=0?'+':'−'}${money(Math.abs(m.balance))}</strong></div>`).join('');}
 function changeManager(){
+ if(!isManager()){toast('Manager only','Only the current manager can change the Manager.','error');return;}
  $('#managerSelect').innerHTML=state.members.map(m=>`<option value="${m.id}" ${m.id===state.mess.managerId?'selected':''}>${esc(m.name)}${m.id===state.mess.managerId?' — Current':''}</option>`).join('');
  $('#managerMemberCount').textContent=`${state.members.length} members available`;
  $('#managerModal').classList.add('open');
 }
 function editDefaultMeal(){
+ if(!isManager()){toast('Manager only','Only the manager can edit the default menu.','error');return;}
  $('#defaultMealForm [name=breakfast]').value=state.mess.defaultMeals.breakfast;$('#defaultMealForm [name=lunch]').value=state.mess.defaultMeals.lunch;$('#defaultMealForm [name=dinner]').value=state.mess.defaultMeals.dinner;$('#defaultMealModal').classList.add('open');
 }
 function replaceRecord(arr,id,record){
@@ -996,6 +998,7 @@ function getSharedNames(ids){return (ids||[]).map(memberName).filter(Boolean).jo
 function expenseShareText(amount, ids){const n=(ids||[]).length;return n?`Share Cost ${money(amount)} ÷ ${n} = ${money(amount/n)} each`:'No members selected';}
 function recalcAndSave(){save();}
 function editMeal(date){
+ if(!isManager()){toast('Manager only','Only the manager can edit meals.','error');return;}
  const r=state.meals.find(x=>x.date===date&&x.month===currentMonth());if(!r)return;
  openModal('mealModal');
  $('#mealForm [name=editId]').value=r.id;
@@ -1022,6 +1025,7 @@ function editExpense(id){
  const btn=$('#expenseForm button.primary-btn'); if(btn)btn.textContent='Update Expense';
 }
 function editFund(id){
+ if(!isManager()){toast('Manager only','Only the manager can edit fund entries.','error');return;}
  const e=state.fundEntries.find(x=>x.id===id); if(!e)return;
  openModal('fundModal');
  setFundMode(e.type);
@@ -1032,9 +1036,9 @@ function editFund(id){
  if(e.type==='transfer'){ $('#fromMember').value=e.fromMember; $('#toMember').value=e.toMember; } else { $('#fundMember').value=e.member; }
  const btn=$('#fundForm button.primary-btn'); if(btn)btn.textContent='Update Entry';
 }
-function deleteMeal(id){const r=state.meals.find(x=>x.id===id);if(!r||!confirmDelete(`meals for ${dateLabel(r.date)}`))return;const total=Object.values(r.counts||{}).reduce((a,b)=>a+Number(b||0),0);state.meals=state.meals.filter(x=>x.id!==id);addNotification('Meals deleted',`${dateLabel(r.date)} · ${total} meals removed`);save();toast('Meals deleted',`${dateLabel(r.date)} was removed.`,'info');}
+function deleteMeal(id){if(!isManager()){toast('Manager only','Only the manager can delete meals.','error');return;}const r=state.meals.find(x=>x.id===id);if(!r||!confirmDelete(`meals for ${dateLabel(r.date)}`))return;const total=Object.values(r.counts||{}).reduce((a,b)=>a+Number(b||0),0);state.meals=state.meals.filter(x=>x.id!==id);addNotification('Meals deleted',`${dateLabel(r.date)} · ${total} meals removed`);save();toast('Meals deleted',`${dateLabel(r.date)} was removed.`,'info');}
 function deleteExpense(id){if(!isManager()){toast('Manager only','Only the manager can delete expenses.','error');return;}const r=state.expenses.find(x=>x.id===id);if(!r||!confirmDelete(`expense “${r.name}”`))return;state.expenses=state.expenses.filter(x=>x.id!==id);addNotification('Expense deleted',`${r.name} · ${money(r.amount)} removed`);save();toast('Expense deleted',`${r.name} was removed.`,'info');}
-function deleteFund(id){const r=state.fundEntries.find(x=>x.id===id);if(!r)return;const label=r.type==='deposit'?'deposit':r.type==='withdrawal'?'withdrawal':'transfer';if(!confirmDelete(`${label} of ${money(r.amount)}`))return;state.fundEntries=state.fundEntries.filter(x=>x.id!==id);addNotification(`${label[0].toUpperCase()+label.slice(1)} deleted`,`${money(r.amount)} on ${dateLabel(r.date)} removed`);save();toast(`${label} deleted`,`${money(r.amount)} was removed.`,'info');}
+function deleteFund(id){if(!isManager()){toast('Manager only','Only the manager can delete fund entries.','error');return;}const r=state.fundEntries.find(x=>x.id===id);if(!r)return;const label=r.type==='deposit'?'deposit':r.type==='withdrawal'?'withdrawal':'transfer';if(!confirmDelete(`${label} of ${money(r.amount)}`))return;state.fundEntries=state.fundEntries.filter(x=>x.id!==id);addNotification(`${label[0].toUpperCase()+label.slice(1)} deleted`,`${money(r.amount)} on ${dateLabel(r.date)} removed`);save();toast(`${label} deleted`,`${money(r.amount)} was removed.`,'info');}
 function applyDefaultMenuToMembers(){
  const each=Number(state.mess.defaultMeals.breakfast||0)+Number(state.mess.defaultMeals.lunch||0)+Number(state.mess.defaultMeals.dinner||0);
  state.members.forEach(m=>{const i=$(`#mealInputs [name="meal_${m.id}"]`);if(i)i.value=each;});
@@ -1078,7 +1082,7 @@ function setup(){
      addNotification('Member deleted',`${m.name} was removed from the mess`);
      recalcAndSave();toast('Member deleted',m.name);return;
    }
-   if(e.target.id==='addMemberBtn'){if(!isAdmin())return toast('Admin only','New members join using the public Join link.','error');toast('Member signup','Give the member the website link and ask them to choose “Join this mess”.','info');}
+   if(e.target.id==='addMemberBtn'){if(!isManager())return toast('Manager only','Only the current manager can use Add Member.','error');toast('Member signup','Give the member the website link and ask them to choose “Join this mess”.','info');}
    if(e.target.id==='exportBtn'){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mess-calculator-data.json';a.click();toast('Data exported','Your current mess data was exported.','info');}
    if(e.target.id==='openDefaultMenu')editDefaultMeal();
    if(e.target.id==='themeToggle'||e.target.id==='themeToggleSettings'){
@@ -1099,6 +1103,7 @@ function setup(){
  document.addEventListener('change',e=>{if(e.target.matches('#expenseShares input[name=share]'))updateShareSummary();});
  $('#expenseForm').addEventListener('submit',e=>{
    e.preventDefault();
+   if(!isManager())return toast('Manager only','Only the manager can add or edit expenses.','error');
    const f=new FormData(e.target),id=(f.get('editId')||'').trim();
    const shared=[...e.target.querySelectorAll('input[name=share]:checked')].map(x=>x.value);
    const amount=Number(f.get('amount'));
@@ -1131,6 +1136,7 @@ function setup(){
  });
  $('#mealForm').addEventListener('submit',e=>{
    e.preventDefault();
+   if(!isManager())return toast('Manager only','Only the manager can add or edit meals.','error');
    const f=new FormData(e.target),date=f.get('date'),id=(f.get('editId')||'').trim();
    const counts={}; state.members.forEach(m=>counts[m.id]=Math.max(0,Number(f.get('meal_'+m.id)||0)));
    const total=Object.values(counts).reduce((a,b)=>a+Number(b||0),0);
@@ -1154,9 +1160,10 @@ function setup(){
    addNotification('Meals added',`${dateLabel(date)} · ${total} total meals`);
    recalcAndSave(); closeModals(); toast('Meals added',`${dateLabel(date)} · ${total} total meals`);
  });
- $('#defaultMealForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.target);state.mess.defaultMeals={breakfast:Number(f.get('breakfast')||0),lunch:Number(f.get('lunch')||0),dinner:Number(f.get('dinner')||0)};$('#defaultMealModal').classList.remove('open');applyDefaultMenuToMembers();addNotification('Default menu updated',`Breakfast ${state.mess.defaultMeals.breakfast}, Lunch ${state.mess.defaultMeals.lunch}, Dinner ${state.mess.defaultMeals.dinner}`);save();toast('Default menu updated',`Breakfast ${state.mess.defaultMeals.breakfast}, Lunch ${state.mess.defaultMeals.lunch}, Dinner ${state.mess.defaultMeals.dinner}.`,'info');});
+ $('#defaultMealForm').addEventListener('submit',e=>{e.preventDefault();if(!isManager())return toast('Manager only','Only the manager can change the default menu.','error');const f=new FormData(e.target);state.mess.defaultMeals={breakfast:Number(f.get('breakfast')||0),lunch:Number(f.get('lunch')||0),dinner:Number(f.get('dinner')||0)};$('#defaultMealModal').classList.remove('open');applyDefaultMenuToMembers();addNotification('Default menu updated',`Breakfast ${state.mess.defaultMeals.breakfast}, Lunch ${state.mess.defaultMeals.lunch}, Dinner ${state.mess.defaultMeals.dinner}`);save();toast('Default menu updated',`Breakfast ${state.mess.defaultMeals.breakfast}, Lunch ${state.mess.defaultMeals.lunch}, Dinner ${state.mess.defaultMeals.dinner}.`,'info');});
  $('#fundForm').addEventListener('submit',e=>{
    e.preventDefault();
+   if(!isManager())return toast('Manager only','Only the manager can add, edit, withdraw, or transfer funds.','error');
    const f=new FormData(e.target);
    const type=f.get('type')||'deposit';
    const id=(f.get('editId')||'').trim();
@@ -1242,7 +1249,7 @@ function setup(){
     toast('New month failed',err.message||'Could not save the new month.','error');
   }
  });
- $('#managerForm').addEventListener('submit',async e=>{e.preventDefault();if(!isAdmin())return toast('Admin only','Only the Admin can change the Manager.','error');const oldManager=state.members.find(x=>x.id===state.mess.managerId);state.mess.managerId=$('#managerSelect').value;const m=state.members.find(x=>x.id===state.mess.managerId);try{if(supabaseClient){if(oldManager?.auth_user_id){await supabaseClient.from('user_roles').upsert({user_id:oldManager.auth_user_id,member_id:oldManager.id,role:'member'},{onConflict:'user_id'});}if(m?.auth_user_id){await supabaseClient.from('user_roles').upsert({user_id:m.auth_user_id,member_id:m.id,role:'manager'},{onConflict:'user_id'});}}addNotification('Manager changed',`${m?.name||'Member'} is now manager`);save();closeModals();toast('Manager changed',`${m?.name||'Member'} is now the manager.`,'info');}catch(err){toast('Manager change failed',err.message,'error');}});
+ $('#managerForm').addEventListener('submit',async e=>{e.preventDefault();if(!isManager())return toast('Manager only','Only the current manager can change the Manager.','error');const oldManager=state.members.find(x=>x.id===state.mess.managerId);state.mess.managerId=$('#managerSelect').value;const m=state.members.find(x=>x.id===state.mess.managerId);try{if(supabaseClient){if(oldManager?.auth_user_id){await supabaseClient.from('user_roles').upsert({user_id:oldManager.auth_user_id,member_id:oldManager.id,role:'member'},{onConflict:'user_id'});}if(m?.auth_user_id){await supabaseClient.from('user_roles').upsert({user_id:m.auth_user_id,member_id:m.id,role:'manager'},{onConflict:'user_id'});}}addNotification('Manager changed',`${m?.name||'Member'} is now manager`);save();closeModals();toast('Manager changed',`${m?.name||'Member'} is now the manager.`,'info');}catch(err){toast('Manager change failed',err.message,'error');}});
  render();
 }
 setup();
@@ -1261,6 +1268,6 @@ $('#joinForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=n
 
 $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentRole='member';document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');});
 /* Auth state is handled by workspace-v10.js to avoid refresh-time session races. */</script>
-<script src="workspace-v10.js?v=20261112-role-visibility-final"></script>
+<script src="workspace-v10.js?v=20261112-manager-only-controls-v2"></script>
 </body>
 </html>
