@@ -188,6 +188,100 @@ body[data-theme="bw"] .share-summary{background:#fafafa;border-color:#a1a1aa;col
   .toolbar{align-items:flex-start;flex-direction:column}
 }
 
+
+/* MOBILE FINAL FIXES: modal interaction + light theme + settlement visibility */
+@media(max-width:760px){
+  /* Modals must sit above the fixed bottom navigation so Save/Cancel and inputs are tappable. */
+  .modal-backdrop.open{z-index:400!important}
+  .modal-backdrop.open .modal{z-index:401!important}
+  .modal{touch-action:auto;-webkit-overflow-scrolling:touch}
+  .modal form{padding-bottom:4px}
+  .form-actions{position:sticky;bottom:-18px;z-index:8}
+  /* Keep the complete dashboard settlement visible on a 6.7–6.8in phone. */
+  #view-dashboard .dashboard-grid .panel:first-child .table-scroll{overflow-x:hidden}
+  #view-dashboard .dashboard-grid .panel:first-child .table{min-width:0!important;width:100%;table-layout:fixed}
+  #view-dashboard .dashboard-grid .panel:first-child .table th,
+  #view-dashboard .dashboard-grid .panel:first-child .table td{
+    padding:8px 3px;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+  }
+  #view-dashboard .dashboard-grid .panel:first-child .table th:nth-child(1),
+  #view-dashboard .dashboard-grid .panel:first-child .table td:nth-child(1){width:29%}
+  #view-dashboard .dashboard-grid .panel:first-child .table th:nth-child(2),
+  #view-dashboard .dashboard-grid .panel:first-child .table td:nth-child(2){width:10%}
+  #view-dashboard .dashboard-grid .panel:first-child .table th:nth-child(3),
+  #view-dashboard .dashboard-grid .panel:first-child .table td:nth-child(3){width:20%}
+  #view-dashboard .dashboard-grid .panel:first-child .table th:nth-child(4),
+  #view-dashboard .dashboard-grid .panel:first-child .table td:nth-child(4){width:20%}
+  #view-dashboard .dashboard-grid .panel:first-child .table th:nth-child(5),
+  #view-dashboard .dashboard-grid .panel:first-child .table td:nth-child(5){width:21%}
+
+  /* White / Light theme for the Android UI. */
+  body[data-theme="light"]{
+    --mobile-bg:#f4f7fb;--mobile-card:#ffffff;--mobile-card2:#f8fafc;
+    --mobile-line:#dfe5ee;--mobile-text:#111827;--mobile-muted:#64748b;
+    --mobile-gold:#d89b17;--mobile-gold2:#b77900
+  }
+  body[data-theme="light"],
+  body[data-theme="light"] .app-shell{background:var(--mobile-bg);color:var(--mobile-text)}
+  body[data-theme="light"] .sidebar{background:#fff;border-right-color:#e5e7eb;box-shadow:24px 0 70px rgba(15,23,42,.16)}
+  body[data-theme="light"] .brand h1{color:#111827}
+  body[data-theme="light"] .brand span{color:#64748b}
+  body[data-theme="light"] .nav-item{color:#475569}
+  body[data-theme="light"] .nav-item:hover{background:#f8fafc;color:#111827}
+  body[data-theme="light"] .nav-item.active{background:#fff7df;color:#b77900}
+  body[data-theme="light"] .nav-item.active:before{background:#d89b17}
+  body[data-theme="light"] .main{background:var(--mobile-bg)}
+  body[data-theme="light"] .topbar{background:rgba(255,255,255,.95);border-bottom-color:#e5e7eb}
+  body[data-theme="light"] .topbar h2{color:#111827}
+  body[data-theme="light"] .mobile-menu{background:#fff;color:#111827;border-color:#dbe3ec}
+  body[data-theme="light"] .role-badge{background:#fff7df;border-color:#f0d58a;color:#9a6700}
+  body[data-theme="light"] .role-badge.member{background:#eff6ff;border-color:#bfdbfe;color:#2563eb}
+  body[data-theme="light"] .mess-card{background:linear-gradient(145deg,#172033,#263b62);box-shadow:0 18px 40px rgba(15,23,42,.16)}
+  body[data-theme="light"] .panel,
+  body[data-theme="light"] .stat,
+  body[data-theme="light"] .member-card,
+  body[data-theme="light"] .report-card,
+  body[data-theme="light"] .profile-card,
+  body[data-theme="light"] .setting{
+    background:#fff!important;color:#111827;border-color:#e2e8f0;box-shadow:0 10px 28px rgba(15,23,42,.06)
+  }
+  body[data-theme="light"] .panel h3,
+  body[data-theme="light"] .member-card strong,
+  body[data-theme="light"] .report-card h4{color:#111827}
+  body[data-theme="light"] .stat-value,
+  body[data-theme="light"] .metric-value{color:#111827}
+  body[data-theme="light"] .stat-label,
+  body[data-theme="light"] .metric-label,
+  body[data-theme="light"] .muted,
+  body[data-theme="light"] .stat-foot{color:#64748b}
+  body[data-theme="light"] .table th{color:#64748b}
+  body[data-theme="light"] .table td,
+  body[data-theme="light"] .list-row{border-color:#e5e7eb;color:#334155}
+  body[data-theme="light"] .table tbody tr:hover{background:#f8fafc}
+  body[data-theme="light"] .summary-banner{background:#fffaf0;border-color:#f1dfae}
+  body[data-theme="light"] .pill{background:#f1f5f9;color:#475569}
+  body[data-theme="light"] .pill.green{background:#ecfdf5;color:#15803d}
+  body[data-theme="light"] .pill.red{background:#fef2f2;color:#b91c1c}
+  body[data-theme="light"] .pill.amber{background:#fffbeb;color:#a16207}
+  body[data-theme="light"] .mini-btn{background:#fff;color:#334155;border-color:#dbe3ec}
+  body[data-theme="light"] .mini-btn.danger{background:#fff5f5;color:#b91c1c;border-color:#fecaca}
+  body[data-theme="light"] .modal{background:#fff;color:#111827;border-color:#dbe3ec;box-shadow:0 25px 70px rgba(15,23,42,.22)}
+  body[data-theme="light"] .modal h3{color:#111827}
+  body[data-theme="light"] .modal label{color:#475569}
+  body[data-theme="light"] .modal input,
+  body[data-theme="light"] .modal select{background:#fff;color:#111827;border-color:#dbe3ec}
+  body[data-theme="light"] .modal .quick-note,
+  body[data-theme="light"] .modal .transfer-hint,
+  body[data-theme="light"] .modal .default-menu-box{background:#f8fafc;color:#475569;border-color:#e2e8f0}
+  body[data-theme="light"] .modal .form-actions{background:#fff}
+  body[data-theme="light"] .modal-backdrop{background:rgba(15,23,42,.42)}
+  body[data-theme="light"] #mobileBottomNav{background:rgba(255,255,255,.96);border-top-color:#e2e8f0;box-shadow:0 -12px 35px rgba(15,23,42,.10)}
+  body[data-theme="light"] .mobile-nav-item{color:#64748b}
+  body[data-theme="light"] .mobile-nav-item.active{color:#b77900;background:#fff7df}
+  body[data-theme="light"] .profile-hero{box-shadow:0 16px 36px rgba(15,23,42,.12)}
+  body[data-theme="light"] .notification-row:hover{background:#fffaf0}
+}
+
 </style>
 
   <title>Mess Calculator</title>
@@ -619,15 +713,17 @@ function toast(title,details,type='success'){const stack=$('#toastStack');if(!st
 function fmtDelta(oldVal,newVal){return `${money(oldVal)} → ${money(newVal)}`;}
 function confirmDelete(label){return window.confirm(`Delete ${label}? This cannot be undone.`);}
 function applyTheme(){
-  const theme=state.mess.theme||'light';
+  const theme=['light','dark','bw'].includes(state.mess.theme)?state.mess.theme:'light';
+  state.mess.theme=theme;
   document.body.dataset.theme=theme;
   const btn=$('#themeToggle');
   if(btn){
-    const label=theme==='dark'?'Use Light Theme':theme==='bw'?'Use Dark Theme':'Dark Theme';
-    btn.querySelector('span:last-child').textContent=label;
+    const label=theme==='dark'?'Use Light Theme':theme==='bw'?'Use Light Theme':'Dark Theme';
+    const icon=btn.querySelector('.nav-icon'); if(icon) icon.textContent=theme==='light'?'◐':theme==='dark'?'☀':'◑';
+    const text=btn.querySelector('span:last-child'); if(text) text.textContent=label;
   }
   const settings=$('#themeToggleSettings');
-  if(settings) settings.textContent=theme==='dark'?'Light':theme==='bw'?'Dark':'Dark';
+  if(settings) settings.textContent=theme==='light'?'Dark':theme==='dark'?'Black & White':'Light';
 }
 function activeExpenses(){return state.expenses.filter(e=>e.month===currentMonth());}
 function activeMeals(){return state.meals.filter(x=>x.month===currentMonth());}
@@ -1172,8 +1268,8 @@ function populateForms(withDefaults=false){
   if(!withDefaults) return;
   $('#expenseForm [name=date]').value=today();$('#mealForm [name=date]').value=today();$('#fundForm [name=date]').value=today();
 }
-function openModal(id){if(['expenseModal','mealModal','fundModal','newMonthModal'].includes(id)&&!isManager()){toast('Manager only','Only the current manager can use this action.','error');return;}if(id==='expenseModal'||id==='mealModal'||id==='fundModal')resetEntryForms(); populateForms(true);$('#'+id).classList.add('open');if(id==='fundModal')setFundMode('deposit');if(id==='newMonthModal')prepareNewMonth();}
-function closeModals(){$$('.modal-backdrop').forEach(x=>x.classList.remove('open'));resetEntryForms();}
+function openModal(id){if(['expenseModal','mealModal','fundModal','newMonthModal'].includes(id)&&!isManager()){toast('Manager only','Only the current manager can use this action.','error');return;}if(id==='expenseModal'||id==='mealModal'||id==='fundModal')resetEntryForms(); populateForms(true);$('#'+id).classList.add('open');document.body.classList.add('modal-open');if(id==='fundModal')setFundMode('deposit');if(id==='newMonthModal')prepareNewMonth();}
+function closeModals(){$('.modal-backdrop').forEach(x=>x.classList.remove('open'));document.body.classList.remove('modal-open');resetEntryForms();}
 function setFundMode(type){
  $('#fundForm [name=type]').value=type;$('#fundModalTitle').textContent=type==='deposit'?'Add Deposit':type==='withdrawal'?'Withdraw Deposit':'Transfer Deposit';
  $('#fundSingleMember').classList.toggle('hidden',type==='transfer');$('#transferMembers').classList.toggle('hidden',type!=='transfer');
@@ -1496,6 +1592,6 @@ $('#joinForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=n
 
 $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentRole='member';document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');});
 /* Auth state is handled by workspace-v10.js to avoid refresh-time session races. */</script>
-<script src="workspace-v10.js?v=20261113-permissions-final"></script>
+<script src="workspace-v10.js?v=20261113-mobile-final"></script>
 </body>
 </html>
