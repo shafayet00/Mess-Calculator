@@ -209,11 +209,11 @@
     const badge=q('#roleBadge');
     if(badge){badge.textContent=currentRole==='manager'?'🛠️ Manager':'👤 Member';badge.className='role-badge '+currentRole}
     qa('.admin-only').forEach(function(e){e.style.display='none'});
-    qa('.manager-only').forEach(function(e){e.style.display=currentRole==='manager'?'':'none'});
+    qa('.manager-only').forEach(function(e){e.style.setProperty('display',currentRole==='manager'?'':'none','important')});
     const cm=q('#changeManagerBtn');if(cm)cm.style.display=currentRole==='manager'?'':'none';
   };
   window.hideEditControlsForRole=function(){
-    ['[data-open-modal="expenseModal"]','[data-open-modal="mealModal"]','#fundDepositBtn','#fundWithdrawBtn','#fundTransferBtn','#addMemberBtn','#settingsManager','#renameMess','#editDefaultMeal','#newMonthBtn','#changeManagerBtn','#managerSaveBtn','[data-edit-meal]','[data-edit-expense]','[data-edit-fund]','[data-delete-meal]','[data-delete-expense]','[data-delete-fund]','[data-delete-member]'].forEach(function(sel){qa(sel).forEach(function(e){e.style.display=currentRole==='manager'?'':'none'})});
+    ['[data-open-modal="expenseModal"]','[data-open-modal="mealModal"]','#fundDepositBtn','#fundWithdrawBtn','#fundTransferBtn','#addMemberBtn','#settingsManager','#renameMess','#editDefaultMeal','#newMonthBtn','#changeManagerBtn','#managerSaveBtn','[data-edit-meal]','[data-edit-expense]','[data-edit-fund]','[data-delete-meal]','[data-delete-expense]','[data-delete-fund]','[data-delete-member]'].forEach(function(sel){qa(sel).forEach(function(e){e.style.setProperty('display',currentRole==='manager'?'':'none','important')})});
   };
 
   window.changeManager=async function(){
