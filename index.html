@@ -525,8 +525,8 @@ function isManager(){syncWorkspaceRole();return currentRole==='manager';}
 function setCloudStatus(text,ok=true){const el=$('#onlineStatus');if(el){el.textContent=text;el.className='online-status '+(ok?'ok':'bad');}const st=$('#storageStatus');if(st)st.textContent=ok?'Cloud synced':'Cloud sync issue';}
 function setRoleUI(){
   const badge=$('#roleBadge');if(badge){badge.textContent=currentRole==='admin'?'👑 Admin':currentRole==='manager'?'🛠️ Manager':'👤 Member';badge.className='role-badge '+currentRole;}
-  $('.admin-only').forEach(el=>el.style.setProperty('display',isAdmin()?'':'none','important'));
-  $('.manager-only').forEach(el=>el.style.setProperty('display',isManager()?'':'none','important'));
+  $$('.admin-only').forEach(el=>el.style.setProperty('display',isAdmin()?'':'none','important'));
+  $$('.manager-only').forEach(el=>el.style.setProperty('display',isManager()?'':'none','important'));
   if($('#changeManagerBtn')) $('#changeManagerBtn').style.setProperty('display',isManager()?'':'none','important');
 }
 function applyPermissionUI(){
@@ -551,7 +551,7 @@ function applyPermissionUI(){
 }
 function hideEditControlsForRole(){
   const editableSelectors=['[data-open-modal="expenseModal"]','[data-open-modal="mealModal"]','#fundDepositBtn','#fundWithdrawBtn','#fundTransferBtn','#addMemberBtn','#settingsManager','#renameMess','#editDefaultMeal','#newMonthBtn','#changeManagerBtn','#managerSaveBtn','[data-edit-meal]','[data-edit-expense]','[data-edit-fund]','[data-delete-meal]','[data-delete-expense]','[data-delete-fund]','[data-delete-member]'];
-  editableSelectors.forEach(sel=>$ (sel).forEach(el=>{el.style.setProperty('display',canEdit()?'':'none','important');}));
+  editableSelectors.forEach(sel=>$$ (sel).forEach(el=>{el.style.setProperty('display',canEdit()?'':'none','important');}));
 }
 const MESS_REALTIME_CHANNEL='mess-calculator-live-v1';
 let realtimeChannel=null;
@@ -807,7 +807,7 @@ function render(){
       if(box) box.innerHTML='<div class="panel"><div class="eyebrow">Temporary display error</div><h3>Could not load this section</h3><p class="muted">Please refresh once. Your cloud data is safe.</p></div>';
     }
   });
-  if(!$('.modal-backdrop.open').length) populateForms();
+  if(!$$('.modal-backdrop.open').length) populateForms();
   setRoleUI();
   hideEditControlsForRole();
   applyPermissionUI();
@@ -1274,7 +1274,7 @@ function populateForms(withDefaults=false){
   $('#expenseForm [name=date]').value=today();$('#mealForm [name=date]').value=today();$('#fundForm [name=date]').value=today();
 }
 function openModal(id){if(['expenseModal','mealModal','fundModal','newMonthModal'].includes(id)&&!isManager()){toast('Manager only','Only the current manager can use this action.','error');return;}if(id==='expenseModal'||id==='mealModal'||id==='fundModal')resetEntryForms(); populateForms(true);$('#'+id).classList.add('open');document.body.classList.add('modal-open');if(id==='fundModal')setFundMode('deposit');if(id==='newMonthModal')prepareNewMonth();}
-function closeModals(fromHistory=false){$('.modal-backdrop').forEach(x=>x.classList.remove('open'));document.body.classList.remove('modal-open');resetEntryForms();if(!fromHistory&&window.__mcAppHistoryReady&&history.state?.mcModal){history.back();}}
+function closeModals(fromHistory=false){$$('.modal-backdrop').forEach(x=>x.classList.remove('open'));document.body.classList.remove('modal-open');resetEntryForms();if(!fromHistory&&window.__mcAppHistoryReady&&history.state?.mcModal){history.back();}}
 function setFundMode(type){
  $('#fundForm [name=type]').value=type;$('#fundModalTitle').textContent=type==='deposit'?'Add Deposit':type==='withdrawal'?'Withdraw Deposit':'Transfer Deposit';
  $('#fundSingleMember').classList.toggle('hidden',type==='transfer');$('#transferMembers').classList.toggle('hidden',type!=='transfer');
@@ -1361,9 +1361,9 @@ function resetEntryForms(){
 }
 
 function activateAppView(view,fromHistory=false){
-  $('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
+  $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
   document.querySelectorAll('.mobile-nav-item[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
-  $('.view').forEach(x=>x.classList.remove('active'));
+  $$('.view').forEach(x=>x.classList.remove('active'));
   const target=$('#view-'+view);
   if(target)target.classList.add('active');
   const mobileNav=document.querySelector('.mobile-nav-item[data-view="'+view+'"]');
