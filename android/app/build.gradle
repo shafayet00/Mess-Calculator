@@ -19,3 +19,5 @@ android {
         release { minifyEnabled false }
     }
 }
+
+// APK build trigger 2026-11-13
