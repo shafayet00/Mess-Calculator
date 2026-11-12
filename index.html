@@ -305,9 +305,9 @@ function save(){
   if(canEdit()) syncCurrentState().catch(err=>setCloudStatus('Sync failed',false));
 }
 
-function canEdit(){return currentRole==='manager';}
-function isAdmin(){return currentRole==='admin';}
-function isManager(){return currentRole==='manager';}
+function canEdit(){return (window.__mcRole||currentRole)==='manager';}
+function isAdmin(){return (window.__mcRole||currentRole)==='admin';}
+function isManager(){return (window.__mcRole||currentRole)==='manager';}
 function setCloudStatus(text,ok=true){const el=$('#onlineStatus');if(el){el.textContent=text;el.className='online-status '+(ok?'ok':'bad');}const st=$('#storageStatus');if(st)st.textContent=ok?'Cloud synced':'Cloud sync issue';}
 function setRoleUI(){
   const badge=$('#roleBadge');if(badge){badge.textContent=currentRole==='admin'?'👑 Admin':currentRole==='manager'?'🛠️ Manager':'👤 Member';badge.className='role-badge '+currentRole;}
