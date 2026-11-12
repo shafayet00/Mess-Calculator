@@ -78,7 +78,7 @@ body[data-theme="bw"] .share-summary{background:#fafafa;border-color:#a1a1aa;col
 
 
 /* MOBILE APP UI - 6.77in class phones */
-#mobileBottomNav{display:none}
+#mobileBottomNav{display:none;touch-action:manipulation;pointer-events:auto}#mobileBottomNav *{pointer-events:auto}.mobile-nav-item{touch-action:manipulation;-webkit-tap-highlight-color:transparent}#menuBtn{touch-action:manipulation;-webkit-tap-highlight-color:transparent;pointer-events:auto}
 #mobileNavOverlay{display:none}
 @media(max-width:760px){
   :root{
@@ -1355,22 +1355,55 @@ function resetEntryForms(){
   updateShareSummary();
 }
 
+function activateAppView(view){
+  $('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
+  document.querySelectorAll('.mobile-nav-item[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
+  $('.view').forEach(x=>x.classList.remove('active'));
+  const target=$('#view-'+view);
+  if(target)target.classList.add('active');
+  const mobileNav=document.querySelector('.mobile-nav-item[data-view="'+view+'"]');
+  const sideNav=document.querySelector('.nav-item[data-view="'+view+'"]');
+  const titleNode=mobileNav||sideNav;
+  if(titleNode)$('#pageTitle').textContent=titleNode.querySelector('span:last-child')?.textContent||'';
+  if(view==='settings'){
+    try{window.__mcRenderSettings?.();window.setRoleUI?.();window.hideEditControlsForRole?.()}catch(err){console.error('Settings render failed:',err);}
+  }
+  if(innerWidth<760)window.__mcSetMobileDrawer?.(false);
+}
+
 function initMobileShell(){
   if(document.getElementById('mobileBottomNav')) return;
   document.body.insertAdjacentHTML('beforeend',`
     <div id="mobileNavOverlay" aria-hidden="true"></div>
     <nav id="mobileBottomNav" aria-label="Mobile navigation">
-      <button class="mobile-nav-item active" data-view="dashboard"><span class="mn-icon">⌂</span><span>Home</span></button>
-      <button class="mobile-nav-item" data-view="meals"><span class="mn-icon">🍴</span><span>Meals</span></button>
-      <button class="mobile-nav-item" data-view="expenses"><span class="mn-icon">▣</span><span>Expenses</span></button>
-      <button class="mobile-nav-item" data-view="fund"><span class="mn-icon">৳</span><span>Fund</span></button>
-      <button class="mobile-nav-item" id="mobileMoreBtn"><span class="mn-icon">•••</span><span>More</span></button>
+      <button type="button" class="mobile-nav-item active" data-view="dashboard"><span class="mn-icon">⌂</span><span>Home</span></button>
+      <button type="button" class="mobile-nav-item" data-view="meals"><span class="mn-icon">🍴</span><span>Meals</span></button>
+      <button type="button" class="mobile-nav-item" data-view="expenses"><span class="mn-icon">▣</span><span>Expenses</span></button>
+      <button type="button" class="mobile-nav-item" data-view="fund"><span class="mn-icon">৳</span><span>Fund</span></button>
+      <button type="button" class="mobile-nav-item" id="mobileMoreBtn"><span class="mn-icon">•••</span><span>More</span></button>
     </nav>`);
   const overlay=document.getElementById('mobileNavOverlay');
   const setDrawer=(open)=>{const side=document.getElementById('sidebar');if(!side)return;side.classList.toggle('open',open);if(overlay)overlay.style.display=open?'block':'none';};
   overlay.onclick=()=>setDrawer(false);
-  document.getElementById('mobileMoreBtn').onclick=()=>setDrawer(!document.getElementById('sidebar')?.classList.contains('open'));
+  document.getElementById('mobileMoreBtn').addEventListener('click',()=>setDrawer(!document.getElementById('sidebar')?.classList.contains('open')));
+  document.querySelectorAll('#mobileBottomNav .mobile-nav-item[data-view]').forEach(btn=>{
+    btn.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      activateAppView(this.dataset.view);
+    });
+  });
+  const menu=document.getElementById('menuBtn');
+  if(menu){
+    menu.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      const side=document.getElementById('sidebar');
+      window.__mcSetMobileDrawer?.(!side?.classList.contains('open'));
+    });
+  }
   window.__mcSetMobileDrawer=setDrawer;
+  window.__mcActivateAppView=activateAppView;
 }
 function syncMobileNav(view){
   document.querySelectorAll('.mobile-nav-item[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
@@ -1379,7 +1412,7 @@ function syncMobileNav(view){
 function setup(){
  initMobileShell();
  document.addEventListener('click',e=>{
-   const nav=e.target.closest('.nav-item[data-view], .mobile-nav-item[data-view]');if(nav){$('.nav-item').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.mobile-nav-item[data-view]').forEach(x=>x.classList.remove('active'));if(nav.classList.contains('nav-item'))nav.classList.add('active');else nav.classList.add('active');syncMobileNav(nav.dataset.view);$('.view').forEach(x=>x.classList.remove('active'));const target=$('#view-'+nav.dataset.view);if(target)target.classList.add('active');$('#pageTitle').textContent=nav.querySelector('span:last-child').textContent;if(nav.dataset.view==='settings'){try{window.__mcRenderSettings?.();window.setRoleUI?.();window.hideEditControlsForRole?.()}catch(err){console.error('Settings render failed:',err)}}if(innerWidth<760)window.__mcSetMobileDrawer?.(false);}
+   const nav=e.target.closest('.nav-item[data-view], .mobile-nav-item[data-view]');if(nav){activateAppView(nav.dataset.view);}
    const open=e.target.closest('[data-open-modal]');if(open)openModal(open.dataset.openModal);if(e.target.closest('[data-close-modal]'))closeModals();if(e.target.id==='menuBtn'){const open=!$('#sidebar').classList.contains('open');window.__mcSetMobileDrawer?.(open);}
    if(e.target.id==='selectAllShare'){$$('#expenseShares input').forEach(x=>x.checked=true);updateShareSummary();}
    if(e.target.id==='fundDepositBtn'){openModal('fundModal');setFundMode('deposit');}
