@@ -151,6 +151,8 @@
     window.__mcInviteCode=membership.workspace&&membership.workspace.invite_code?membership.workspace.invite_code:'';
     currentRole=membership.role;
     currentMemberId=membership.member_id;
+    window.__mcRole=currentRole;
+    window.__mcMemberId=currentMemberId;
     // Immediately replace the loading badges once the workspace role is known.
     const roleBadge=q('#roleBadge');
     if(roleBadge){
@@ -380,6 +382,8 @@
       workspaceMemberships=await getMemberships();
       const me=workspaceMemberships.find(x=>x.workspace_id===currentWorkspaceId&&x.user_id===currentUser.id);
       if(me)currentRole=me.role;
+      window.__mcRole=currentRole;
+      window.__mcMemberId=currentMemberId;
       setRoleUI();hideEditControlsForRole();
       toast('Manager changed',target.name+' is now the manager. You are now a member.','info');
     });
@@ -412,7 +416,7 @@
       }else if(event==='SIGNED_IN'){
         if(session&&!window.__mcPasswordReauth)openChooserOnce().catch(function(e){console.error(e)});
       }else if(event==='SIGNED_OUT'){
-        currentWorkspaceId=null;window.__mcWorkspaceId=null;workspaceMemberships=[];
+        currentWorkspaceId=null;window.__mcWorkspaceId=null;workspaceMemberships=[];window.__mcRole='member';window.__mcMemberId=null;
         if(workspaceChannel){supabaseClient.removeChannel(workspaceChannel).catch(function(){})}
         if(authBooting) return;
         q('#mcWorkspaceScreen')&&q('#mcWorkspaceScreen').classList.remove('show');
