@@ -78,7 +78,7 @@ body[data-theme="bw"] .share-summary{background:#fafafa;border-color:#a1a1aa;col
 
 
 /* MOBILE APP UI - 6.77in class phones */
-#mobileBottomNav{display:none}
+#mobileBottomNav{display:none;touch-action:manipulation;pointer-events:auto}#mobileBottomNav *{pointer-events:auto}.mobile-nav-item{touch-action:manipulation;-webkit-tap-highlight-color:transparent}#menuBtn{touch-action:manipulation;-webkit-tap-highlight-color:transparent;pointer-events:auto}
 #mobileNavOverlay{display:none}
 @media(max-width:760px){
   :root{
@@ -188,6 +188,11 @@ body[data-theme="bw"] .share-summary{background:#fafafa;border-color:#a1a1aa;col
   .toolbar{align-items:flex-start;flex-direction:column}
 }
 
+
+/* MOBILE STABILITY OVERRIDES: never leave an invisible overlay blocking taps. */
+#mobileNavOverlay{display:none!important;pointer-events:none!important;z-index:215}
+#mobileNavOverlay.open{display:block!important;pointer-events:auto!important}
+@media(max-width:760px){#mobileNavOverlay.open{display:block!important;pointer-events:auto!important}}
 
 /* MOBILE FINAL FIXES: modal interaction + light theme + settlement visibility */
 @media(max-width:760px){
@@ -520,8 +525,8 @@ function isManager(){syncWorkspaceRole();return currentRole==='manager';}
 function setCloudStatus(text,ok=true){const el=$('#onlineStatus');if(el){el.textContent=text;el.className='online-status '+(ok?'ok':'bad');}const st=$('#storageStatus');if(st)st.textContent=ok?'Cloud synced':'Cloud sync issue';}
 function setRoleUI(){
   const badge=$('#roleBadge');if(badge){badge.textContent=currentRole==='admin'?'👑 Admin':currentRole==='manager'?'🛠️ Manager':'👤 Member';badge.className='role-badge '+currentRole;}
-  $('.admin-only').forEach(el=>el.style.setProperty('display',isAdmin()?'':'none','important'));
-  $('.manager-only').forEach(el=>el.style.setProperty('display',isManager()?'':'none','important'));
+  $$('.admin-only').forEach(el=>el.style.setProperty('display',isAdmin()?'':'none','important'));
+  $$('.manager-only').forEach(el=>el.style.setProperty('display',isManager()?'':'none','important'));
   if($('#changeManagerBtn')) $('#changeManagerBtn').style.setProperty('display',isManager()?'':'none','important');
 }
 function applyPermissionUI(){
@@ -546,7 +551,7 @@ function applyPermissionUI(){
 }
 function hideEditControlsForRole(){
   const editableSelectors=['[data-open-modal="expenseModal"]','[data-open-modal="mealModal"]','#fundDepositBtn','#fundWithdrawBtn','#fundTransferBtn','#addMemberBtn','#settingsManager','#renameMess','#editDefaultMeal','#newMonthBtn','#changeManagerBtn','#managerSaveBtn','[data-edit-meal]','[data-edit-expense]','[data-edit-fund]','[data-delete-meal]','[data-delete-expense]','[data-delete-fund]','[data-delete-member]'];
-  editableSelectors.forEach(sel=>$ (sel).forEach(el=>{el.style.setProperty('display',canEdit()?'':'none','important');}));
+  editableSelectors.forEach(sel=>$$ (sel).forEach(el=>{el.style.setProperty('display',canEdit()?'':'none','important');}));
 }
 const MESS_REALTIME_CHANNEL='mess-calculator-live-v1';
 let realtimeChannel=null;
@@ -802,7 +807,7 @@ function render(){
       if(box) box.innerHTML='<div class="panel"><div class="eyebrow">Temporary display error</div><h3>Could not load this section</h3><p class="muted">Please refresh once. Your cloud data is safe.</p></div>';
     }
   });
-  if(!$('.modal-backdrop.open').length) populateForms();
+  if(!$$('.modal-backdrop.open').length) populateForms();
   setRoleUI();
   hideEditControlsForRole();
   applyPermissionUI();
@@ -1269,7 +1274,7 @@ function populateForms(withDefaults=false){
   $('#expenseForm [name=date]').value=today();$('#mealForm [name=date]').value=today();$('#fundForm [name=date]').value=today();
 }
 function openModal(id){if(['expenseModal','mealModal','fundModal','newMonthModal'].includes(id)&&!isManager()){toast('Manager only','Only the current manager can use this action.','error');return;}if(id==='expenseModal'||id==='mealModal'||id==='fundModal')resetEntryForms(); populateForms(true);$('#'+id).classList.add('open');document.body.classList.add('modal-open');if(id==='fundModal')setFundMode('deposit');if(id==='newMonthModal')prepareNewMonth();}
-function closeModals(){$('.modal-backdrop').forEach(x=>x.classList.remove('open'));document.body.classList.remove('modal-open');resetEntryForms();}
+function closeModals(fromHistory=false){$$('.modal-backdrop').forEach(x=>x.classList.remove('open'));document.body.classList.remove('modal-open');resetEntryForms();if(!fromHistory&&window.__mcAppHistoryReady&&history.state?.mcModal){history.back();}}
 function setFundMode(type){
  $('#fundForm [name=type]').value=type;$('#fundModalTitle').textContent=type==='deposit'?'Add Deposit':type==='withdrawal'?'Withdraw Deposit':'Transfer Deposit';
  $('#fundSingleMember').classList.toggle('hidden',type==='transfer');$('#transferMembers').classList.toggle('hidden',type!=='transfer');
@@ -1355,31 +1360,94 @@ function resetEntryForms(){
   updateShareSummary();
 }
 
+function activateAppView(view,fromHistory=false){
+  $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
+  document.querySelectorAll('.mobile-nav-item[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
+  $$('.view').forEach(x=>x.classList.remove('active'));
+  const target=$('#view-'+view);
+  if(target)target.classList.add('active');
+  const mobileNav=document.querySelector('.mobile-nav-item[data-view="'+view+'"]');
+  const sideNav=document.querySelector('.nav-item[data-view="'+view+'"]');
+  const titleNode=mobileNav||sideNav;
+  if(titleNode)$('#pageTitle').textContent=titleNode.querySelector('span:last-child')?.textContent||'';
+  if(view==='settings'){
+    try{window.__mcRenderSettings?.();window.setRoleUI?.();window.hideEditControlsForRole?.()}catch(err){console.error('Settings render failed:',err);}
+  }
+  if(innerWidth<760)window.__mcSetMobileDrawer?.(false);
+  const previous=window.__mcCurrentView||'dashboard';
+  window.__mcCurrentView=view;
+  if(window.__mcAppHistoryReady&&!fromHistory&&previous!==view){history.pushState({mcApp:true,view:view},'',location.href);}
+}
+
 function initMobileShell(){
   if(document.getElementById('mobileBottomNav')) return;
   document.body.insertAdjacentHTML('beforeend',`
     <div id="mobileNavOverlay" aria-hidden="true"></div>
     <nav id="mobileBottomNav" aria-label="Mobile navigation">
-      <button class="mobile-nav-item active" data-view="dashboard"><span class="mn-icon">⌂</span><span>Home</span></button>
-      <button class="mobile-nav-item" data-view="meals"><span class="mn-icon">🍴</span><span>Meals</span></button>
-      <button class="mobile-nav-item" data-view="expenses"><span class="mn-icon">▣</span><span>Expenses</span></button>
-      <button class="mobile-nav-item" data-view="fund"><span class="mn-icon">৳</span><span>Fund</span></button>
-      <button class="mobile-nav-item" id="mobileMoreBtn"><span class="mn-icon">•••</span><span>More</span></button>
+      <button type="button" class="mobile-nav-item active" data-view="dashboard"><span class="mn-icon">⌂</span><span>Home</span></button>
+      <button type="button" class="mobile-nav-item" data-view="meals"><span class="mn-icon">🍴</span><span>Meals</span></button>
+      <button type="button" class="mobile-nav-item" data-view="expenses"><span class="mn-icon">▣</span><span>Expenses</span></button>
+      <button type="button" class="mobile-nav-item" data-view="fund"><span class="mn-icon">৳</span><span>Fund</span></button>
+      <button type="button" class="mobile-nav-item" id="mobileMoreBtn"><span class="mn-icon">•••</span><span>More</span></button>
     </nav>`);
   const overlay=document.getElementById('mobileNavOverlay');
-  const setDrawer=(open)=>{const side=document.getElementById('sidebar');if(!side)return;side.classList.toggle('open',open);if(overlay)overlay.style.display=open?'block':'none';};
-  overlay.onclick=()=>setDrawer(false);
-  document.getElementById('mobileMoreBtn').onclick=()=>setDrawer(!document.getElementById('sidebar')?.classList.contains('open'));
+  const setDrawer=(open)=>{const side=document.getElementById('sidebar');if(!side)return;side.classList.toggle('open',!!open);if(overlay)overlay.classList.toggle('open',!!open);};
+  overlay.onclick=(e)=>{e.preventDefault();e.stopPropagation();setDrawer(false);};
+  document.getElementById('mobileMoreBtn').addEventListener('click',(e)=>{e.preventDefault();e.stopPropagation();setDrawer(!document.getElementById('sidebar')?.classList.contains('open'));});
+  document.querySelectorAll('#mobileBottomNav .mobile-nav-item[data-view]').forEach(btn=>{
+    btn.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      activateAppView(this.dataset.view);
+    });
+  });
+  const menu=document.getElementById('menuBtn');
+  if(menu){
+    menu.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      const side=document.getElementById('sidebar');
+      window.__mcSetMobileDrawer?.(!side?.classList.contains('open'));
+    });
+  }
+  document.querySelectorAll('[data-close-modal]').forEach(btn=>btn.addEventListener('click',(e)=>{e.preventDefault();e.stopPropagation();closeModals();}));
+  document.querySelectorAll('.modal-backdrop').forEach(backdrop=>backdrop.addEventListener('click',(e)=>{if(e.target===backdrop)closeModals();}));
   window.__mcSetMobileDrawer=setDrawer;
+  window.__mcActivateAppView=activateAppView;
 }
 function syncMobileNav(view){
   document.querySelectorAll('.mobile-nav-item[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
 }
 
+function setupMobileBackAndOverlay(){
+  if(window.__mcAppHistoryBound)return;
+  window.__mcAppHistoryBound=true;
+  window.__mcAppHistoryReady=true;
+  window.__mcCurrentView='dashboard';
+  history.replaceState({mcApp:true,view:'dashboard'},'',location.href);
+  window.addEventListener('popstate',function(){
+    const openModal=document.querySelector('.modal-backdrop.open');
+    if(openModal){closeModals(true);history.pushState({mcApp:true,view:window.__mcCurrentView||'dashboard'},'',location.href);return;}
+    const side=document.getElementById('sidebar');
+    if(side?.classList.contains('open')){window.__mcSetMobileDrawer?.(false);history.pushState({mcApp:true,view:window.__mcCurrentView||'dashboard'},'',location.href);return;}
+    const stateView=history.state?.mcApp?history.state.view:null;
+    if(stateView&&stateView!==(window.__mcCurrentView||'dashboard')){activateAppView(stateView,true);return;}
+    if((window.__mcCurrentView||'dashboard')!=='dashboard'){activateAppView('dashboard',true);history.replaceState({mcApp:true,view:'dashboard'},'',location.href);return;}
+    history.pushState({mcApp:true,view:'dashboard'},'',location.href);
+  });
+}
+
 function setup(){
  initMobileShell();
+ setupMobileBackAndOverlay();
+ document.addEventListener('click',function(e){
+   const close=e.target.closest('[data-close-modal]');
+   if(close){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();closeModals();return;}
+   const backdrop=e.target.closest('.modal-backdrop.open');
+   if(backdrop&&e.target===backdrop){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();closeModals();}
+ },true);
  document.addEventListener('click',e=>{
-   const nav=e.target.closest('.nav-item[data-view], .mobile-nav-item[data-view]');if(nav){$('.nav-item').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.mobile-nav-item[data-view]').forEach(x=>x.classList.remove('active'));if(nav.classList.contains('nav-item'))nav.classList.add('active');else nav.classList.add('active');syncMobileNav(nav.dataset.view);$('.view').forEach(x=>x.classList.remove('active'));const target=$('#view-'+nav.dataset.view);if(target)target.classList.add('active');$('#pageTitle').textContent=nav.querySelector('span:last-child').textContent;if(nav.dataset.view==='settings'){try{window.__mcRenderSettings?.();window.setRoleUI?.();window.hideEditControlsForRole?.()}catch(err){console.error('Settings render failed:',err)}}if(innerWidth<760)window.__mcSetMobileDrawer?.(false);}
+   const nav=e.target.closest('.nav-item[data-view], .mobile-nav-item[data-view]');if(nav){activateAppView(nav.dataset.view);}
    const open=e.target.closest('[data-open-modal]');if(open)openModal(open.dataset.openModal);if(e.target.closest('[data-close-modal]'))closeModals();if(e.target.id==='menuBtn'){const open=!$('#sidebar').classList.contains('open');window.__mcSetMobileDrawer?.(open);}
    if(e.target.id==='selectAllShare'){$$('#expenseShares input').forEach(x=>x.checked=true);updateShareSummary();}
    if(e.target.id==='fundDepositBtn'){openModal('fundModal');setFundMode('deposit');}
@@ -1390,7 +1458,8 @@ function setup(){
    if(e.target.id==='printReport')downloadFullReport();
    if(e.target.id==='renameMess'){if(!isManager())return toast('Manager only','Only the current manager can rename the mess.','error');const n=prompt('Mess name',state.mess.name);if(n?.trim()){const o=state.mess.name;state.mess.name=n.trim();addNotification('Mess renamed',`${o} → ${state.mess.name}`);save();toast('Mess renamed',state.mess.name,'info');}}
    if(e.target.id==='resetData'){if(!isManager())return toast('Manager only','Only the current manager can reset data.','error');if(confirm('Reset all local data?')){state=migrate(structuredClone(defaultState));addNotification('Data reset','All local data was reset');save();}}
-   const memberCard=e.target.closest('[data-member-details]');if(memberCard && !e.target.closest('[data-delete-member]')){renderMemberDetails(memberCard.dataset.memberDetails);return;}
+   if(e.target.closest('#backToMembers')){e.preventDefault();renderMembers();activateAppView('members');return;}
+   const memberCard=e.target.closest('[data-member-details]');if(memberCard && !e.target.closest('[data-delete-member]')){renderMemberDetails(memberCard.dataset.memberDetails);window.__mcMemberDetailOpen=true;return;}
    const delMem=e.target.closest('[data-delete-member]');
    if(delMem){
      const id=delMem.dataset.deleteMember,m=state.members.find(x=>x.id===id);if(!m)return;
@@ -1592,6 +1661,6 @@ $('#joinForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=n
 
 $('#logoutBtn')?.addEventListener('click',async()=>{if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;currentRole='member';document.querySelector('.app-shell').style.display='none';$('#authScreen').classList.add('show');});
 /* Auth state is handled by workspace-v10.js to avoid refresh-time session races. */</script>
-<script src="workspace-v10.js?v=20261113-mobile-final"></script>
+<script src="workspace-v10.js?v=20261113-mobile-stability-fix2"></script>
 </body>
 </html>
