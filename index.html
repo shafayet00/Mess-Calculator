@@ -1468,7 +1468,7 @@ function setup(){
    if(e.target.id==='newMonthBtn')openModal('newMonthModal');
    if(e.target.id==='printReport')downloadFullReport();
    if(e.target.id==='renameMess'){if(!isManager())return toast('Manager only','Only the current manager can rename the mess.','error');const n=prompt('Mess name',state.mess.name);if(n?.trim()){const o=state.mess.name;state.mess.name=n.trim();addNotification('Mess renamed',`${o} → ${state.mess.name}`);save();toast('Mess renamed',state.mess.name,'info');}}
-   if(e.target.id==='resetData'){if(!isManager())return toast('Manager only','Only the current manager can reset data.','error');if(confirm('Reset all local data?')){state=migrate(structuredClone(defaultState));addNotification('Data reset','All local data was reset');save();}}
+   if(e.target.id==='resetData'){if(!isManager())return toast('Manager only','Only the manager can reset data.','error');openModal('resetConfirmModal');}
    if(e.target.closest('#backToMembers')){e.preventDefault();renderMembers();activateAppView('members');return;}
    const memberCard=e.target.closest('[data-member-details]');if(memberCard && !e.target.closest('[data-delete-member]')){renderMemberDetails(memberCard.dataset.memberDetails);window.__mcMemberDetailOpen=true;return;}
    const delMem=e.target.closest('[data-delete-member]');
@@ -1487,6 +1487,7 @@ function setup(){
      recalcAndSave();toast('Member deleted',m.name);return;
    }
    if(e.target.id==='sidebarLogoutBtn'){const topLogout=$('#logoutBtn');if(topLogout){topLogout.click();}return;}
+   if(e.target.id==='confirmResetBtn'){if(!isManager())return toast('Manager only','Only the manager can reset data.','error');state=migrate(structuredClone(defaultState));addNotification('Data reset','All mess data was reset by the manager');save();closeModals();toast('Storage reset','All mess data has been reset.','info');return;}
    if(e.target.id==='confirmResetBtn'){if(!isManager())return toast('Manager only','Only the manager can reset data.','error');state=migrate(structuredClone(defaultState));addNotification('Data reset','All mess data was reset by the manager');save();closeModals();toast('Storage reset','All mess data has been reset.','info');return;}
    if(e.target.id==='addMemberBtn'){if(!isManager())return toast('Manager only','Only the current manager can use Add Member.','error');toast('Member signup','Give the member the website link and ask them to choose “Join this mess”.','info');}
    if(e.target.id==='exportBtn'){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mess-calculator-data.json';a.click();toast('Data exported','Your current mess data was exported.','info');}
