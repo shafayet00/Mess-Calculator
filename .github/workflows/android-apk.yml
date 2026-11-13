@@ -8,6 +8,9 @@ on:
       - '.github/workflows/android-apk.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -37,9 +40,21 @@ jobs:
         run: gradle --no-daemon -p android :app:assembleDebug
       - name: Rename APK
         run: cp android/app/build/outputs/apk/debug/app-debug.apk Mess-Calculator.apk
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: Mess-Calculator-Android
           path: Mess-Calculator.apk
           retention-days: 30
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mess-calculator-v1.0.${{ github.run_number }}
+          name: Mess Calculator Android v1.0.${{ github.run_number }}
+          body: |
+            Latest Android APK for Mess Calculator.
+            
+            Direct download:
+            `Mess-Calculator.apk`
+          files: Mess-Calculator.apk
+          make_latest: true
